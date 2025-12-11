@@ -22,6 +22,7 @@ set(MX_Application_Src
     ${CMAKE_SOURCE_DIR}/Core/Src/main.c
     ${CMAKE_SOURCE_DIR}/Core/Src/gpio.c
     ${CMAKE_SOURCE_DIR}/Core/Src/tim.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/usart.c
     ${CMAKE_SOURCE_DIR}/Core/Src/stm32f4xx_it.c
     ${CMAKE_SOURCE_DIR}/Core/Src/stm32f4xx_hal_msp.c
     ${CMAKE_SOURCE_DIR}/Core/Src/sysmem.c
@@ -47,6 +48,7 @@ set(STM32_Drivers_Src
     ${CMAKE_SOURCE_DIR}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
     ${CMAKE_SOURCE_DIR}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
     ${CMAKE_SOURCE_DIR}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c
+    ${CMAKE_SOURCE_DIR}/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
 )
 
 # Drivers Midllewares

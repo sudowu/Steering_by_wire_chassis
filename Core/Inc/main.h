@@ -57,6 +57,32 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define KEY0_Pin GPIO_PIN_2
+#define KEY0_GPIO_Port GPIOE
+#define KEY1_Pin GPIO_PIN_3
+#define KEY1_GPIO_Port GPIOE
+#define KEY2_Pin GPIO_PIN_4
+#define KEY2_GPIO_Port GPIOE
+#define SHUTDOWN2_Pin GPIO_PIN_2
+#define SHUTDOWN2_GPIO_Port GPIOF
+#define SHUTDOWN1_Pin GPIO_PIN_10
+#define SHUTDOWN1_GPIO_Port GPIOF
+#define HALL1_TIM_CH1_Pin GPIO_PIN_10
+#define HALL1_TIM_CH1_GPIO_Port GPIOH
+#define HALL1_TIM_CH2_Pin GPIO_PIN_11
+#define HALL1_TIM_CH2_GPIO_Port GPIOH
+#define HALL1_TIM_CH3_Pin GPIO_PIN_12
+#define HALL1_TIM_CH3_GPIO_Port GPIOH
+#define HALL2_TIM_CH1_Pin GPIO_PIN_12
+#define HALL2_TIM_CH1_GPIO_Port GPIOD
+#define HALL2_TIM_CH2_Pin GPIO_PIN_13
+#define HALL2_TIM_CH2_GPIO_Port GPIOD
+#define HALL2_TIM_CH3_Pin GPIO_PIN_8
+#define HALL2_TIM_CH3_GPIO_Port GPIOB
+#define LED0_Pin GPIO_PIN_0
+#define LED0_GPIO_Port GPIOE
+#define LED1_Pin GPIO_PIN_1
+#define LED1_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 
