@@ -7,6 +7,9 @@
 
 #include "main.h"
 
+#define MOTOR_1                     1
+#define MOTOR_2                     2
+
 #define CCW             (1)     //逆时针
 #define CW              (2)     //顺时针
 #define HALL_ERROR      (0XF0)  //霍尔错误标志
@@ -15,19 +18,20 @@
 
 typedef struct
 {
-    __IO uint8_t run_flag;
-    __IO uint8_t locket_rotor;
-    __IO uint8_t step_sta;
-    __IO uint8_t hall_single_sta;
-    __IO uint8_t step_last;
-    __IO uint8_t dir;
-    __IO int32_t pos;
-    __IO int32_t speed;
-    __IO int16_t current;
-    __IO uint16_t pwm_duty;
-    __IO uint32_t hall_keep_t;
-    __IO uint32_t hall_pull_num;
-    __IO uint32_t lock_time;
+    __IO uint8_t run_flag;                  /* 运行标志 */
+    __IO uint8_t locket_rotor;              /* 堵转标记 */
+    __IO uint8_t step_sta;                  /* 本次霍尔状态 */
+    __IO uint8_t hall_single_sta;           /* 单个霍尔状态 */
+    __IO uint8_t hall_sta_edge;             /* 单个霍尔状态跳变 */
+    __IO uint8_t step_last;                 /* 上次霍尔状态 */
+    __IO uint8_t dir;                       /* 电机旋转方向 */
+    __IO int32_t pos;                       /* 电机位置 */
+    __IO int32_t speed;                     /* 电机速度 */
+    __IO int16_t current;                   /* 电机速度 */
+    __IO uint16_t pwm_duty;                 /* 电机占空比 */
+    __IO uint32_t hall_keep_t;              /* 霍尔保持时间 */
+    __IO uint32_t hall_pull_num;            /* 霍尔传感器脉冲数 */
+    __IO uint32_t lock_time;                /* 电机堵转时间 */
     __IO uint32_t no_single;
     __IO uint32_t count_j;
 } bldc_obj;
