@@ -19,9 +19,11 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stm32f4xx_hal_uart.h"
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,6 +58,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim8;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 
@@ -219,12 +222,45 @@ void TIM1_UP_TIM10_IRQHandler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
-
+  uint32_t timeout = 0;
+  uint32_t maxDelay = 0x1FFFF;
   /* USER CODE END USART1_IRQn 0 */
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
-
+  timeout = 0;
+  while (HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY) 
+  {
+    timeout++;
+    if(timeout > maxDelay) 
+    {
+      break;
+    }
+  }
+  timeout = 0;
+  while (HAL_UART_Receive_IT(&huart1, g_rx_buffer, RXBUFFERSIZE) != HAL_OK) 
+  {
+    timeout++;
+    if(timeout > maxDelay) 
+    {
+      break;
+    }
+    
+  }
   /* USER CODE END USART1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM8 update interrupt and TIM13 global interrupt.
+  */
+void TIM8_UP_TIM13_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM8_UP_TIM13_IRQn 0 */
+
+  /* USER CODE END TIM8_UP_TIM13_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim8);
+  /* USER CODE BEGIN TIM8_UP_TIM13_IRQn 1 */
+
+  /* USER CODE END TIM8_UP_TIM13_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

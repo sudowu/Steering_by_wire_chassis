@@ -22,6 +22,20 @@
 
 /* USER CODE BEGIN 0 */
 
+
+/* 接收缓冲, 最大USART_REC_LEN个字节. */
+uint8_t g_usart_rx_buf[USART_REC_LEN];
+
+/*  接收状态
+ *  bit15，      接收完成标志
+ *  bit14，      接收到0x0d
+ *  bit13~0，    接收到的有效字节数目
+*/
+uint16_t g_usart_rx_sta = 0;
+
+uint8_t g_rx_buffer[RXBUFFERSIZE];                  /* HAL库使用的串口接收缓冲 */
+
+
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
@@ -51,7 +65,7 @@ void MX_USART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
-
+  HAL_UART_Receive_IT(&huart1, g_rx_buffer, RXBUFFERSIZE);
   /* USER CODE END USART1_Init 2 */
 
 }
@@ -81,7 +95,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* USART1 interrupt Init */
-    HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(USART1_IRQn, 3, 3);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
   /* USER CODE BEGIN USART1_MspInit 1 */
 
@@ -115,5 +129,44 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 }
 
 /* USER CODE BEGIN 1 */
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if(huart->Instance == USART1)               /* 如果是串口1 */
+    {
+        if((g_usart_rx_sta & 0x8000) == 0)      /* 接收未完成 */
+        {
+            if(g_usart_rx_sta & 0x4000)         /* 接收到了0x0d */
+            {
+                if(g_rx_buffer[0] != 0x0a) 
+                {
+                    g_usart_rx_sta = 0;         /* 接收错误,重新开始 */
+                }
+                else 
+                {
+                    g_usart_rx_sta |= 0x8000;   /* 接收完成了 */
+                }
+            }
+            else                                /* 还没收到0X0D */
+            {
+                if(g_rx_buffer[0] == 0x0d)
+                {
+                    g_usart_rx_sta |= 0x4000;
+                }
+                else
+                {
+                    g_usart_rx_buf[g_usart_rx_sta & 0X3FFF] = g_rx_buffer[0] ;
+                    g_usart_rx_sta++;
+                    if(g_usart_rx_sta > (USART_REC_LEN - 1))
+                    {
+                        g_usart_rx_sta = 0;     /* 接收数据错误,重新开始接收 */
+                    }
+                }
+            }
+        }
+        else 
+        {
+            /* 接收完成后,不再接收数据,直到处理完毕. */
+        }
+    }
+}
 /* USER CODE END 1 */
