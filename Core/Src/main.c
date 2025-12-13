@@ -30,6 +30,7 @@
 #include "led.h"
 #include <stdint.h>
 #include <sys/_intsup.h>
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -100,6 +101,10 @@ int main(void) {
   /* USER CODE BEGIN 2 */
   bldc_ctrl(MOTOR_1, CCW, 0);
   bldc_ctrl(MOTOR_2, CCW, 0);
+
+    printf("按下KEY0 开始正转加速\r\n");
+    printf("按下KEY1 开始反转加速\r\n");
+    printf("按下KEY2 停止电机\r\n");
 
   /* USER CODE END 2 */
 
