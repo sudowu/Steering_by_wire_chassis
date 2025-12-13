@@ -36,7 +36,8 @@ typedef struct
     __IO uint32_t count_j;
 } bldc_obj;
 
-
+extern bldc_obj g_bldc_motor1;
+extern bldc_obj g_bldc_motor2;
 
 
 #define SHUTDOWN1_EN    HAL_GPIO_WritePin(SHUTDOWN1_GPIO_Port, SHUTDOWN1_Pin, GPIO_PIN_SET);
