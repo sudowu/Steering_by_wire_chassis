@@ -1,38 +1,75 @@
-# Steering_by_wire_chassis
+# BLDC 控制子系统（Steering-by-wire Chassis）
 
-#### 介绍
-专注于线控底盘技术的开源项目，实现车辆远程控制与自动化驾驶功能，适用于科研、教育及商业应用。
+简介
+---
+本目录包含用于方向盘线控制底盘的 BLDC 电机控制固件与相关说明。目标是在 STM32 平台上实现高效、可靠的电机驱动与闭环控制（速度/位置/力矩）。
 
-#### 软件架构
-软件架构说明
+主要功能（示例）
+---
+- 三相 BLDC/PMSM 基本驱动（FOC/开环可选）
+- 电流、电压与温度保护
+- CAN/串口通信用于与上层控制器交互
+- 简单的标定与自检流程
 
+硬件（必备）
+---
+- MCU: STM32（请在实际硬件中替换为具体型号）
+- 三相电机驱动器 / MOSFET 模块 或 专用驱动芯片（例如：DRVxxx）
+- 霍尔/编码器/旋转变压器（作为位置/速度传感器）
+- 电流采样电阻与差分放大器 / ADC
+- 电源（驱动电源与 MCU 电源隔离）
+- CAN 总线或 UART 调试接口
 
+软件依赖
+---
+- STM32CubeMX / HAL 或 LL 驱动（依据工程选择）
+- ARM GCC 或 Keil / IAR（可选）
+- OpenOCD / ST-Link 工具链用于调试与烧录
 
-#### 安装教程
+接线与引脚（示例）
+---
+- 三相门控（PWM）：PAx / PBx / PCx（依据板子实际定义）
+- 电流采样 ADC：PAy / PBz
+- 编码器/霍尔：EXTI / TIM 捕获 引脚
+- CAN：CAN_RX / CAN_TX
+- 使能 / 方向 / 刹车 / 复位 控制引脚
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+（在此处插入或引用具体的电路图与引脚映射表；确保电源地、传感器接地与驱动地正确连接）
 
-#### 使用说明
+构建与烧写（基本步骤）
+---
+1. 使用 STM32CubeMX 配置时钟、定时器、ADC、DMA、USART/CAN、NVIC 等外设。导出为工程或手动合并配置。  
+2. 使用 ARM GCC / IDE 编译项目：确保在 makefile 或工程配置中设置正确的 MCU 型号与链接脚本。  
+3. 通过 ST-Link / J-Link / OpenOCD 烧录固件：  
+   - st-flash / stm32flash / IDE 烧录或使用 OpenOCD + GDB 调试。  
+4. 上电前检查所有接线与安全限位；在第一次上电时使用限流电源或短时按键测试。
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+运行与标定
+---
+- 初次运行请在低速、低电流条件下验证相位顺序与编码器方向。  
+- 提供一次电流环、速度环与位置环的基础参数标定流程（具体参数与步骤见代码注释或标定脚本）。
 
-#### 参与贡献
+调试与故障排查（常见）
+---
+- 无 PWM 输出：检查定时器配置与 GPIO 复用，确认 MOSFET 使能信号。  
+- 电机抖动或噪声大：确认相序、编码器方向、PWM 死区与滤波。  
+- 过流或过热：检查电流采样、滤波、限流逻辑与散热。  
+- 通信问题（CAN/UART）：确认终端电阻、波特率与引脚连接。
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+安全注意事项
+---
+- 开发与调试阶段务必使用受限电源或带限流功能的电源。  
+- 在连接或更改电气连接时断电操作。  
+- 实装时加装熔断、过流与过压保护。
 
+贡献与支持
+---
+欢迎通过 Pull Request 提交改进。对于硬件原理图、BOM 或测试步骤的补充尤为有用。
 
-#### 特技
+许可证
+---
+本项目采用 MIT 许可证（或在此替换为项目实际许可证）。详见 LICENSE 文件。
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+联系方式
+---
+维护者：项目组（在项目根目录或 issue tracker 中联系）
