@@ -6,8 +6,8 @@
 
 #include "tim.h"
 
-bldc_obj g_bldc_motor1 = {STOP,0,0,CCW,0,0,0,0,0,0};   /* 电机结构体 */
-bldc_obj g_bldc_motor2 = {STOP,0,0,CCW,0,0,0,0,0,0};   /* 电机结构体 */
+bldc_obj g_bldc_motor1 = {STOP,0,0,CCW,0,0,0,0,0,0,0,0,0,0,0,0};   /* 电机结构体 */
+bldc_obj g_bldc_motor2 = {STOP,0,0,CCW,0,0,0,0,0,0,0,0,0,0,0,0};   /* 电机结构体 */
 
 const uint8_t hall_table_cw[6] = {6,2,3,1,5,4};         /* 顺时针旋转表 */
 const uint8_t hall_table_ccw[6] = {5,1,3,2,6,4};        /* 逆时针旋转表 */
