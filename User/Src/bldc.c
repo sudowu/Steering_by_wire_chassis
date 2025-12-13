@@ -99,7 +99,7 @@ uint8_t check_hall_dir(bldc_obj * obj)                /* 检测电机旋转方�
 
 uint32_t hallsensor_get_state(uint8_t motor_id)        /* 获取霍尔状态 */
 {
-    __IO static uint32_t state ;
+    static __IO uint32_t state ;
     state  = 0;
     if(motor_id == MOTOR_1)
     {
