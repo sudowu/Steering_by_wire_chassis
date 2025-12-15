@@ -21,7 +21,10 @@
 #include "tim.h"
 
 /* USER CODE BEGIN 0 */
+#include "main.h"
+#include "stm32f4xx_hal_def.h"
 #include "stm32f4xx_hal_tim.h"
+#include <stdint.h>
 /* USER CODE END 0 */
 
 TIM_HandleTypeDef htim1;
@@ -32,7 +35,7 @@ void MX_TIM1_Init(void)
 {
 
   /* USER CODE BEGIN TIM1_Init 0 */
-
+  uint8_t status = HAL_OK;
   /* USER CODE END TIM1_Init 0 */
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
@@ -100,12 +103,16 @@ void MX_TIM1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM1_Init 2 */
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-  HAL_TIM_Base_Start(&htim1);
+  status |= HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  status |= HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+  status |= HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+  // status |= HAL_TIM_Base_Start(&htim1);
   HAL_TIM_Base_MspInit(&htim1);
-  HAL_TIM_Base_Start_IT(&htim1);
+  __HAL_TIM_CLEAR_IT(&htim1, TIM_IT_UPDATE);
+  status |= HAL_TIM_Base_Start_IT(&htim1);
+  if (status != HAL_OK) {
+    Error_Handler();
+  }
   /* USER CODE END TIM1_Init 2 */
   HAL_TIM_MspPostInit(&htim1);
 
@@ -142,7 +149,7 @@ void MX_TIM8_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_OC_Init(&htim8) != HAL_OK)
+  if (HAL_TIM_PWM_Init(&htim8) != HAL_OK)
   {
     Error_Handler();
   }
@@ -152,22 +159,22 @@ void MX_TIM8_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_OC_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
   }
-  if (HAL_TIM_OC_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
-  if (HAL_TIM_OC_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -186,7 +193,7 @@ void MX_TIM8_Init(void)
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
-  HAL_TIM_Base_Start(&htim8);
+  // HAL_TIM_Base_Start(&htim8);
   HAL_TIM_Base_MspInit(&htim8);
   HAL_TIM_Base_Start_IT(&htim8);
   /* USER CODE END TIM8_Init 2 */

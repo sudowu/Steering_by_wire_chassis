@@ -260,7 +260,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
       if (g_bldc_motor1.dir == CW) {
         g_bldc_motor1.step_sta = hallsensor_get_state(MOTOR_1);
       } else {
-        g_bldc_motor1.step_sta = 7 - hallsensor_get_state(MOTOR_2);
+        g_bldc_motor1.step_sta = 7 - hallsensor_get_state(MOTOR_1);
       }
       if (g_bldc_motor1.step_sta <= 6 && g_bldc_motor1.step_sta >= 1) {
         pfunclist_m1[g_bldc_motor1.step_sta - 1]();
@@ -286,7 +286,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   else if (htim->Instance == TIM8) {
     if (g_bldc_motor2.run_flag == RUN) {
       if (g_bldc_motor2.dir == CW) {
-        g_bldc_motor2.step_sta = hallsensor_get_state(MOTOR_1);
+        g_bldc_motor2.step_sta = hallsensor_get_state(MOTOR_2);
       } else {
         g_bldc_motor2.step_sta = 7 - hallsensor_get_state(MOTOR_2);
       }
