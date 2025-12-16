@@ -282,8 +282,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
         g_bldc_motor1.hall_keep_t++;
       }
     }
-  }
-  else if (htim->Instance == TIM8) {
+  } else if (htim->Instance == TIM8) {
     if (g_bldc_motor2.run_flag == RUN) {
       if (g_bldc_motor2.dir == CW) {
         g_bldc_motor2.step_sta = hallsensor_get_state(MOTOR_2);

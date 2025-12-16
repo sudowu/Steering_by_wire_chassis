@@ -122,7 +122,7 @@ void MX_TIM8_Init(void)
 {
 
   /* USER CODE BEGIN TIM8_Init 0 */
-
+  uint8_t status = 0;
   /* USER CODE END TIM8_Init 0 */
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
@@ -190,12 +190,15 @@ void MX_TIM8_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM8_Init 2 */
-  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
+  status |= HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
+  status |= HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
+  status |= HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
   // HAL_TIM_Base_Start(&htim8);
   HAL_TIM_Base_MspInit(&htim8);
-  HAL_TIM_Base_Start_IT(&htim8);
+  status |= HAL_TIM_Base_Start_IT(&htim8);
+  if (status != HAL_OK) {
+    Error_Handler();
+  }
   /* USER CODE END TIM8_Init 2 */
   HAL_TIM_MspPostInit(&htim8);
 
