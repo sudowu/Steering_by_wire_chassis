@@ -200,7 +200,7 @@ pctr pfunclist_m2[6] = {&m2_uhwl, &m2_vhul, &m2_vhwl,
                         &m2_whvl, &m2_uhvl, &m2_whul};
 
 void m2_uhvl(void) {
-  htim8.Instance->CCR1 = g_bldc_motor1.pwm_duty;
+  htim8.Instance->CCR1 = g_bldc_motor2.pwm_duty;
   htim8.Instance->CCR2 = 0;
   htim8.Instance->CCR3 = 0;
   HAL_GPIO_WritePin(M2_LOW_SIDE_U_GPIO_Port, M2_LOW_SIDE_U_Pin, GPIO_PIN_RESET);
@@ -209,7 +209,7 @@ void m2_uhvl(void) {
 }
 
 void m2_uhwl(void) {
-  htim8.Instance->CCR1 = g_bldc_motor1.pwm_duty;
+  htim8.Instance->CCR1 = g_bldc_motor2.pwm_duty;
   htim8.Instance->CCR2 = 0;
   htim8.Instance->CCR3 = 0;
   HAL_GPIO_WritePin(M2_LOW_SIDE_U_GPIO_Port, M2_LOW_SIDE_U_Pin, GPIO_PIN_RESET);
@@ -219,7 +219,7 @@ void m2_uhwl(void) {
 
 void m2_vhwl(void) {
   htim8.Instance->CCR1 = 0;
-  htim8.Instance->CCR2 = g_bldc_motor1.pwm_duty;
+  htim8.Instance->CCR2 = g_bldc_motor2.pwm_duty;
   htim8.Instance->CCR3 = 0;
   HAL_GPIO_WritePin(M2_LOW_SIDE_U_GPIO_Port, M2_LOW_SIDE_U_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(M2_LOW_SIDE_V_GPIO_Port, M2_LOW_SIDE_V_Pin, GPIO_PIN_RESET);
@@ -228,7 +228,7 @@ void m2_vhwl(void) {
 
 void m2_vhul(void) {
   htim8.Instance->CCR1 = 0;
-  htim8.Instance->CCR2 = g_bldc_motor1.pwm_duty;
+  htim8.Instance->CCR2 = g_bldc_motor2.pwm_duty;
   htim8.Instance->CCR3 = 0;
   HAL_GPIO_WritePin(M2_LOW_SIDE_U_GPIO_Port, M2_LOW_SIDE_U_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(M2_LOW_SIDE_V_GPIO_Port, M2_LOW_SIDE_V_Pin, GPIO_PIN_RESET);
@@ -238,7 +238,7 @@ void m2_vhul(void) {
 void m2_whul(void) {
   htim8.Instance->CCR1 = 0;
   htim8.Instance->CCR2 = 0;
-  htim8.Instance->CCR3 = g_bldc_motor1.pwm_duty;
+  htim8.Instance->CCR3 = g_bldc_motor2.pwm_duty;
   HAL_GPIO_WritePin(M2_LOW_SIDE_U_GPIO_Port, M2_LOW_SIDE_U_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(M2_LOW_SIDE_V_GPIO_Port, M2_LOW_SIDE_V_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(M2_LOW_SIDE_W_GPIO_Port, M2_LOW_SIDE_W_Pin, GPIO_PIN_RESET);
@@ -247,7 +247,7 @@ void m2_whul(void) {
 void m2_whvl(void) {
   htim8.Instance->CCR1 = 0;
   htim8.Instance->CCR2 = 0;
-  htim8.Instance->CCR3 = g_bldc_motor1.pwm_duty;
+  htim8.Instance->CCR3 = g_bldc_motor2.pwm_duty;
   HAL_GPIO_WritePin(M2_LOW_SIDE_U_GPIO_Port, M2_LOW_SIDE_U_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(M2_LOW_SIDE_V_GPIO_Port, M2_LOW_SIDE_V_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(M2_LOW_SIDE_W_GPIO_Port, M2_LOW_SIDE_W_Pin, GPIO_PIN_RESET);
