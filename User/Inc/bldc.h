@@ -6,6 +6,7 @@
 #define BLDC_BLDC_H
 
 #include "main.h"
+#include <stdint.h>
 
 #define MOTOR_1                     1
 #define MOTOR_2                     2
@@ -29,6 +30,7 @@ typedef struct
     __IO int32_t speed;                     /* 电机速度 */
     __IO int16_t current;                   /* 电机速度 */
     __IO uint16_t pwm_duty;                 /* 电机占空比 */
+    __IO uint16_t pwm_duty_target;          /* 电机占空比目标值 */
     __IO uint32_t hall_keep_t;              /* 霍尔保持时间 */
     __IO uint32_t hall_pull_num;            /* 霍尔传感器脉冲数 */
     __IO uint32_t lock_time;                /* 电机堵转时间 */

@@ -8,9 +8,9 @@
 #include "tim.h"
 #include <stdint.h>
 
-bldc_obj g_bldc_motor1 = {STOP, 0, 0, CCW, 0, 0, 0, 0,
+bldc_obj g_bldc_motor1 = {STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
                           0,    0, 0, 0,   0, 0, 0, 0}; /* 电机结构体 */
-bldc_obj g_bldc_motor2 = {STOP, 0, 0, CCW, 0, 0, 0, 0,
+bldc_obj g_bldc_motor2 = {STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
                           0,    0, 0, 0,   0, 0, 0, 0}; /* 电机结构体 */
 
 const uint8_t hall_table_cw[6] = {6, 2, 3, 1, 5, 4};  /* 顺时针旋转表 */
@@ -257,11 +257,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   uint8_t bldc_dir = 0;
   if (htim->Instance == TIM1) {
     if (g_bldc_motor1.run_flag == RUN) {
+
+      //电机1实际占空比控制
+      if (g_bldc_motor1.pwm_duty_target > g_bldc_motor1.pwm_duty) {
+        g_bldc_motor1.pwm_duty += 1;
+      } else if (g_bldc_motor1.pwm_duty_target < g_bldc_motor1.pwm_duty) {
+        g_bldc_motor1.pwm_duty -= 1;
+      }
+      //读取霍尔值获取转子位置
       if (g_bldc_motor1.dir == CW) {
         g_bldc_motor1.step_sta = hallsensor_get_state(MOTOR_1);
       } else {
         g_bldc_motor1.step_sta = 7 - hallsensor_get_state(MOTOR_1);
       }
+      //判断霍尔值是否正常，驱动电机1
       if (g_bldc_motor1.step_sta <= 6 && g_bldc_motor1.step_sta >= 1) {
         pfunclist_m1[g_bldc_motor1.step_sta - 1]();
       } else {
@@ -269,6 +278,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
         g_bldc_motor1.run_flag = STOP;
         g_bldc_motor1.pwm_duty = 0;
       }
+      //如果读取霍尔值不同则进行换向
       if (g_bldc_motor1.step_sta != g_bldc_motor1.step_last) {
         g_bldc_motor1.hall_keep_t = 0;
         bldc_dir = check_hall_dir(&g_bldc_motor1);
@@ -278,17 +288,28 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
           g_bldc_motor1.pos -= 1;
         }
         g_bldc_motor1.step_last = g_bldc_motor1.step_sta;
-      } else if (g_bldc_motor1.run_flag == RUN) {
-        g_bldc_motor1.hall_keep_t++;
-      }
+      } 
+     //else if (g_bldc_motor1.run_flag == RUN) {
+      //  g_bldc_motor1.hall_keep_t++;
+      //}
     }
-  } else if (htim->Instance == TIM8) {
+  } 
+  //电机2
+  else if (htim->Instance == TIM8) {
     if (g_bldc_motor2.run_flag == RUN) {
+      //电机1实际占空比控制
+      if(g_bldc_motor2.pwm_duty_target > g_bldc_motor2.pwm_duty) {
+        g_bldc_motor2.pwm_duty += 1;
+      } else if (g_bldc_motor2.pwm_duty_target < g_bldc_motor2.pwm_duty) {
+        g_bldc_motor2.pwm_duty -= 1;
+      }
+      //读取霍尔值获取转子位置
       if (g_bldc_motor2.dir == CW) {
         g_bldc_motor2.step_sta = hallsensor_get_state(MOTOR_2);
       } else {
         g_bldc_motor2.step_sta = 7 - hallsensor_get_state(MOTOR_2);
       }
+      //判断霍尔值是否正常，驱动电机2
       if (g_bldc_motor2.step_sta <= 6 && g_bldc_motor2.step_sta >= 1) {
         pfunclist_m2[g_bldc_motor2.step_sta - 1]();
       } else {
@@ -296,6 +317,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
         g_bldc_motor2.run_flag = STOP;
         g_bldc_motor2.pwm_duty = 0;
       }
+      //如果读取霍尔值不同则进行换向
       if (g_bldc_motor2.step_sta != g_bldc_motor2.step_last) {
         g_bldc_motor2.hall_keep_t = 0;
         bldc_dir = check_hall_dir(&g_bldc_motor2);
@@ -305,9 +327,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
           g_bldc_motor2.pos -= 1;
         }
         g_bldc_motor2.step_last = g_bldc_motor2.step_sta;
-      } else if (g_bldc_motor2.run_flag == RUN) {
-        g_bldc_motor2.hall_keep_t++;
-      }
+      } 
+      //else if (g_bldc_motor2.run_flag == RUN) {
+      //  g_bldc_motor2.hall_keep_t++;
+      //}
     }
   }
 }

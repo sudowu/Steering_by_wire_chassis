@@ -125,18 +125,18 @@ int main(void)
     if (key == KEY0_PRES)           //按下key0占空比++
     {
       pwm_duty_temp += 500;
-      if (pwm_duty_temp > MAX_PWM_DUTY/1) 
+      if (pwm_duty_temp > MAX_PWM_DUTY/2) 
         pwm_duty_temp = pwm_duty_last;
       if (pwm_duty_temp > 0) {
-        g_bldc_motor1.pwm_duty = pwm_duty_temp;
+        g_bldc_motor1.pwm_duty_target = pwm_duty_temp;
         g_bldc_motor1.dir = CW;
-        g_bldc_motor2.pwm_duty = pwm_duty_temp;
+        g_bldc_motor2.pwm_duty_target = pwm_duty_temp;
         g_bldc_motor2.dir = CW;
       }
       else {
-        g_bldc_motor1.pwm_duty = -pwm_duty_temp;
+        g_bldc_motor1.pwm_duty_target = -pwm_duty_temp;
         g_bldc_motor1.dir = CCW;
-        g_bldc_motor2.pwm_duty = -pwm_duty_temp;
+        g_bldc_motor2.pwm_duty_target = -pwm_duty_temp;
         g_bldc_motor2.dir = CCW;
       }
       g_bldc_motor1.run_flag = RUN;
@@ -147,18 +147,18 @@ int main(void)
     else if (key == KEY1_PRES)      //按下key1占空比--
     {
       pwm_duty_temp -= 500;
-      if (pwm_duty_temp < -(MAX_PWM_DUTY/1)) 
+      if (pwm_duty_temp < -(MAX_PWM_DUTY/2)) 
         pwm_duty_temp = pwm_duty_last;
       if (pwm_duty_temp > 0) {
-        g_bldc_motor1.pwm_duty = pwm_duty_temp;
+        g_bldc_motor1.pwm_duty_target = pwm_duty_temp;
         g_bldc_motor1.dir = CW;
-        g_bldc_motor2.pwm_duty = pwm_duty_temp;
+        g_bldc_motor2.pwm_duty_target = pwm_duty_temp;
         g_bldc_motor2.dir = CW;
       }
       else {
-        g_bldc_motor1.pwm_duty = -pwm_duty_temp;
+        g_bldc_motor1.pwm_duty_target = -pwm_duty_temp;
         g_bldc_motor1.dir = CCW;
-        g_bldc_motor2.pwm_duty = -pwm_duty_temp;
+        g_bldc_motor2.pwm_duty_target = -pwm_duty_temp;
         g_bldc_motor2.dir = CCW;
       }
       g_bldc_motor1.run_flag = RUN;
@@ -170,12 +170,12 @@ int main(void)
     {
       pwm_duty_temp = 0;
       stop_motor1();
-      g_bldc_motor1.pwm_duty = 0;
-      g_bldc_motor1.run_flag = STOP;
+      g_bldc_motor1.pwm_duty_target = 0;
+      // g_bldc_motor1.run_flag = STOP;
       
       stop_motor2();
-      g_bldc_motor2.pwm_duty = 0;
-      g_bldc_motor2.run_flag = STOP;
+      g_bldc_motor2.pwm_duty_target = 0;
+      // g_bldc_motor2.run_flag = STOP;
 
     }
     HAL_Delay(10);
