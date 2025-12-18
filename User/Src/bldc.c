@@ -34,6 +34,9 @@ void bldc_ctrl(uint8_t motor_id, int32_t dir, float duty) {
 
 void stop_motor1(void) {
   /* 关闭半桥芯片输出 */
+  g_bldc_motor1.pwm_duty_target = 0;
+  while (g_bldc_motor1.pwm_duty);
+  g_bldc_motor1.run_flag = STOP;
   SHUTDOWN1_OFF;
   /* 关闭PWM输出 */
   HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
@@ -50,6 +53,9 @@ void stop_motor1(void) {
 
 void stop_motor2(void) {
   {
+    g_bldc_motor2.pwm_duty_target = 0;
+    while (g_bldc_motor2.pwm_duty);
+    g_bldc_motor2.run_flag = STOP;
     SHUTDOWN2_OFF;
     HAL_TIM_PWM_Stop(&htim8, TIM_CHANNEL_1);
     HAL_TIM_PWM_Stop(&htim8, TIM_CHANNEL_2);
