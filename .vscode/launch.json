@@ -36,7 +36,7 @@
             ],
             "serverHost": "localhost",
             "serverPort": "3333",
-            "serverCwd": "",
+            "serverCwd": "${workspaceFolder}",
             "runEntry": "main",
             "imagesAndSymbols": [
                 {
