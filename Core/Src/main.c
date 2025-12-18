@@ -73,9 +73,11 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+  int a = 0;
   uint8_t key = 0, t = 0;
   int16_t pwm_duty_temp = 0;
   int16_t pwm_duty_last = 0;
+  uint8_t data[8] = {1,2,3,4,5,6,7,8};
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -116,6 +118,7 @@ int main(void)
     t++;
     if (t == 20) {
       LED0_TOGGLE();
+      a = CAN_Send_HAL(0x01, data, 8);
       t = 0;
     }
     if (pwm_duty_last != pwm_duty_temp) {
@@ -207,12 +210,11 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
   RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
