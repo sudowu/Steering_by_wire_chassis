@@ -21,6 +21,9 @@
 #include "can.h"
 
 /* USER CODE BEGIN 0 */
+
+#include <stdio.h>
+
 CAN_HandleTypeDef hcan;  // 全局CAN句柄
 CAN_TxHeaderTypeDef TxHeader;  // 发送报文头
 CAN_RxHeaderTypeDef RxHeader;  // 接收报文头
@@ -172,5 +175,19 @@ HAL_StatusTypeDef CAN_Send_HAL(uint32_t id, uint8_t* data, uint8_t len) {
     
     // 3. 发送报文
     return HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+}
+
+
+
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+  if (hcan->Instance == CAN1) {
+    HAL_CAN_GetRxMessage(hcan,CAN_RX_FIFO0 , &RxHeader, RxData);
+    printf("ID:%d len:%d data:",(int)RxHeader.StdId, (int)RxHeader.DLC);
+    for (uint32_t i = 0; i < RxHeader.DLC; i++) {
+      printf("%x ",RxData[i]);
+    }
+    printf("\r\n");
+  }
 }
 /* USER CODE END 1 */
