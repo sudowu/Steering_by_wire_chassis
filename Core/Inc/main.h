@@ -89,6 +89,10 @@ void Error_Handler(void);
 #define M2_LOW_SIDE_V_GPIO_Port GPIOH
 #define M2_LOW_SIDE_W_Pin GPIO_PIN_15
 #define M2_LOW_SIDE_W_GPIO_Port GPIOH
+#define BRAKE1_Pin GPIO_PIN_4
+#define BRAKE1_GPIO_Port GPIOB
+#define BRAKE2_Pin GPIO_PIN_5
+#define BRAKE2_GPIO_Port GPIOB
 #define HALL2_TIM_CH3_Pin GPIO_PIN_8
 #define HALL2_TIM_CH3_GPIO_Port GPIOB
 #define LED0_Pin GPIO_PIN_0

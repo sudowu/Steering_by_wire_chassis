@@ -54,7 +54,7 @@ void stop_motor1(void) {
 void stop_motor2(void) {
   {
     g_bldc_motor2.pwm_duty_target = 0;
-    while (g_bldc_motor2.pwm_duty);
+    // while (g_bldc_motor2.pwm_duty);
     g_bldc_motor2.run_flag = STOP;
     SHUTDOWN2_OFF;
     HAL_TIM_PWM_Stop(&htim8, TIM_CHANNEL_1);
@@ -265,7 +265,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (g_bldc_motor1.run_flag == RUN) {
 
       //电机1实际占空比控制
-      if (g_bldc_motor1.pwm_duty_target > g_bldc_motor1.pwm_duty) {
+      // if (g_bldc_motor1.pwm_duty_target == 500 && g_bldc_motor1.pwm_duty == 0) {
+      //   g_bldc_motor1.pwm_duty = g_bldc_motor1.pwm_duty_target;
+      // }
+       if (g_bldc_motor1.pwm_duty_target > g_bldc_motor1.pwm_duty) {
         g_bldc_motor1.pwm_duty += 1;
       } else if (g_bldc_motor1.pwm_duty_target < g_bldc_motor1.pwm_duty) {
         g_bldc_motor1.pwm_duty -= 1;
