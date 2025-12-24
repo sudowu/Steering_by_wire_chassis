@@ -73,7 +73,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  int a = 0;
+    int a = 0;
   uint8_t key = 0, t = 0;
   int16_t pwm_duty_temp = 0;
   int16_t pwm_duty_last = 0;
@@ -102,6 +102,7 @@ int main(void)
   MX_TIM8_Init();
   MX_USART1_UART_Init();
   MX_CAN1_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
   bldc_ctrl(MOTOR_1, CCW, 0);
   bldc_ctrl(MOTOR_2, CCW, 0);

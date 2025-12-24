@@ -63,6 +63,8 @@ void Error_Handler(void);
 #define KEY1_GPIO_Port GPIOE
 #define KEY2_Pin GPIO_PIN_4
 #define KEY2_GPIO_Port GPIOE
+#define BEEP_Pin GPIO_PIN_0
+#define BEEP_GPIO_Port GPIOF
 #define SHUTDOWN2_Pin GPIO_PIN_2
 #define SHUTDOWN2_GPIO_Port GPIOF
 #define SHUTDOWN1_Pin GPIO_PIN_10
