@@ -73,7 +73,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-    int a = 0;
+  
   uint8_t key = 0, t = 0;
   int16_t pwm_duty_temp = 0;
   int16_t pwm_duty_last = 0;
@@ -107,9 +107,9 @@ int main(void)
   bldc_ctrl(MOTOR_1, CCW, 0);
   bldc_ctrl(MOTOR_2, CCW, 0);
 
-    printf("按下KEY0 开始正转加速\r\n");
-    printf("按下KEY1 开始反转加速\r\n");
-    printf("按下KEY2 停止电机\r\n");
+  printf("按下KEY0 开始正转加速\r\n");
+  printf("按下KEY1 开始反转加速\r\n");
+  printf("按下KEY2 停止电机\r\n");
 
   /* USER CODE END 2 */
 
@@ -119,7 +119,7 @@ int main(void)
     t++;
     if (t == 20) {
       LED0_TOGGLE();
-      a = CAN_Send_HAL(0x01, data, 8);
+      CAN_Send_HAL(0x01, data, 8);
       t = 0;
     }
     if (pwm_duty_last != pwm_duty_temp) {

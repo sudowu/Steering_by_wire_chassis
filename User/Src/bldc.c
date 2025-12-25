@@ -6,6 +6,7 @@
 
 #include "main.h"
 #include "stm32f407xx.h"
+#include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_gpio.h"
 #include "tim.h"
 #include <stdint.h>
@@ -36,9 +37,13 @@ void bldc_ctrl(uint8_t motor_id, int32_t dir, float duty) {
 
 void stop_motor1(void) {
   /* 关闭半桥芯片输出 */
+  uint8_t time_count = 0;
   g_bldc_motor1.pwm_duty_target = 0;
-  while (g_bldc_motor1.pwm_duty)
-    ;
+  while (g_bldc_motor1.pwm_duty && time_count <= 20)
+  {
+    HAL_Delay(100);
+    time_count++;
+  }
   g_bldc_motor1.run_flag = STOP;
   SHUTDOWN1_OFF;
   /* 关闭PWM输出 */
@@ -56,7 +61,13 @@ void stop_motor1(void) {
 
 void stop_motor2(void) {
   {
+    uint8_t time_count = 0;
     g_bldc_motor2.pwm_duty_target = 0;
+    while (g_bldc_motor2.pwm_duty && time_count <= 20)
+    {
+      HAL_Delay(100);
+      time_count++;
+    }
     // while (g_bldc_motor2.pwm_duty);
     g_bldc_motor2.run_flag = STOP;
     SHUTDOWN2_OFF;
