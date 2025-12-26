@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 #define DUTY_STEP_UP                1
-#define DUTY_STEP_DOWN                3
+#define DUTY_STEP_DOWN              3
 
 #define MOTOR_1                     1
 #define MOTOR_2                     2
