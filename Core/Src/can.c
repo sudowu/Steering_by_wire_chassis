@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 
-CAN_HandleTypeDef hcan;  // 全局CAN句柄
+
 CAN_TxHeaderTypeDef TxHeader;  // 发送报文头
 CAN_RxHeaderTypeDef RxHeader;  // 接收报文头
 uint8_t TxData[8];       // 发送数据缓冲区
@@ -179,15 +179,5 @@ HAL_StatusTypeDef CAN_Send_HAL(uint32_t id, uint8_t* data, uint8_t len) {
 
 
 
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-  if (hcan->Instance == CAN1) {
-    HAL_CAN_GetRxMessage(hcan,CAN_RX_FIFO0 , &RxHeader, RxData);
-    printf("ID:%d len:%d data:",(int)RxHeader.StdId, (int)RxHeader.DLC);
-    for (uint32_t i = 0; i < RxHeader.DLC; i++) {
-      printf("%x ",RxData[i]);
-    }
-    printf("\r\n");
-  }
-}
+
 /* USER CODE END 1 */

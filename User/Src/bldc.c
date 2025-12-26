@@ -274,7 +274,7 @@ void m2_whvl(void) {
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   uint8_t bldc_dir = 0;
   if (htim->Instance == TIM1) {
-    if (g_bldc_motor1.run_flag == RUN  && g_bldc_motor1.dir_last == g_bldc_motor1.dir) {
+    if (g_bldc_motor1.run_flag == RUN) {
 
       // 读取霍尔值获取转子位置
       if (g_bldc_motor1.dir == CW){
@@ -357,15 +357,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
       g_bldc_motor2.pwm_duty -= DUTY_STEP_DOWN;
     }
     if (g_bldc_motor1.pwm_duty == 0) {
-      g_bldc_motor1.dir_last = g_bldc_motor1.dir;
-    }
-    if (g_bldc_motor1.dir != g_bldc_motor1.dir_last) {
-      g_bldc_motor1.pwm_duty_target = 0;
+      g_bldc_motor1.dir = g_bldc_motor1.dir_set;
     }
     if (g_bldc_motor2.pwm_duty == 0) {
-      g_bldc_motor2.dir_last = g_bldc_motor2.dir;
+      g_bldc_motor2.dir = g_bldc_motor2.dir_set;
     }
-    if (g_bldc_motor2.dir != g_bldc_motor2.dir_last) {
+
+    if (g_bldc_motor1.dir != g_bldc_motor1.dir_set) {
+      g_bldc_motor1.pwm_duty_target = 0;
+    }
+    if (g_bldc_motor2.dir != g_bldc_motor2.dir_set) {
       g_bldc_motor2.pwm_duty_target = 0;
     }
     // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);

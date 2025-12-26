@@ -135,15 +135,15 @@ int main(void)
         pwm_duty_temp = pwm_duty_last;
       if (pwm_duty_temp > 0) {
         g_bldc_motor1.pwm_duty_target = pwm_duty_temp;
-        g_bldc_motor1.dir = CW;
+        g_bldc_motor1.dir_set = CW;
         g_bldc_motor2.pwm_duty_target = pwm_duty_temp;
-        g_bldc_motor2.dir = CW;
+        g_bldc_motor2.dir_set = CW;
       }
       else {
         g_bldc_motor1.pwm_duty_target = -pwm_duty_temp;
-        g_bldc_motor1.dir = CCW;
+        g_bldc_motor1.dir_set = CCW;
         g_bldc_motor2.pwm_duty_target = -pwm_duty_temp;
-        g_bldc_motor2.dir = CCW;
+        g_bldc_motor2.dir_set = CCW;
       }
       g_bldc_motor1.run_flag = RUN;
       g_bldc_motor2.run_flag = RUN;
@@ -157,15 +157,15 @@ int main(void)
         pwm_duty_temp = pwm_duty_last;
       if (pwm_duty_temp > 0) {
         g_bldc_motor1.pwm_duty_target = pwm_duty_temp;
-        g_bldc_motor1.dir = CW;
+        g_bldc_motor1.dir_set = CW;
         g_bldc_motor2.pwm_duty_target = pwm_duty_temp;
-        g_bldc_motor2.dir = CW;
+        g_bldc_motor2.dir_set = CW;
       }
       else {
         g_bldc_motor1.pwm_duty_target = -pwm_duty_temp;
-        g_bldc_motor1.dir = CCW;
+        g_bldc_motor1.dir_set = CCW;
         g_bldc_motor2.pwm_duty_target = -pwm_duty_temp;
-        g_bldc_motor2.dir = CCW;
+        g_bldc_motor2.dir_set = CCW;
       }
       g_bldc_motor1.run_flag = RUN;
       g_bldc_motor2.run_flag = RUN;

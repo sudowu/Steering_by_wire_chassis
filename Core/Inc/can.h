@@ -35,7 +35,11 @@ extern "C" {
 extern CAN_HandleTypeDef hcan1;
 
 /* USER CODE BEGIN Private defines */
-
+extern CAN_TxHeaderTypeDef TxHeader;  // 发送报文头
+extern CAN_RxHeaderTypeDef RxHeader;  // 接收报文头
+extern uint8_t TxData[8];       // 发送数据缓冲区
+extern uint8_t RxData[8];       // 接收数据缓冲区
+extern uint32_t TxMailbox;      // 发送邮箱号
 /* USER CODE END Private defines */
 
 void MX_CAN1_Init(void);
