@@ -74,7 +74,7 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
   
-  uint8_t key = 0, t = 0;
+    uint8_t key = 0, t = 0;
   int16_t pwm_duty_temp = 0;
   int16_t pwm_duty_last = 0;
   uint8_t data[8] = {1,2,3,4,5,6,7,8};

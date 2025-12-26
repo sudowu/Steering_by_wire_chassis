@@ -349,14 +349,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     //   g_bldc_motor1.pwm_duty = g_bldc_motor1.pwm_duty_target;
     // }
     if (g_bldc_motor1.pwm_duty_target > g_bldc_motor1.pwm_duty) {
-      g_bldc_motor1.pwm_duty += 1;
+      g_bldc_motor1.pwm_duty += DUTY_STEP_UP;
     } else if (g_bldc_motor1.pwm_duty_target < g_bldc_motor1.pwm_duty) {
-      g_bldc_motor1.pwm_duty -= 1;
+      g_bldc_motor1.pwm_duty -= DUTY_STEP_DOWN;
     }
     if (g_bldc_motor2.pwm_duty_target > g_bldc_motor2.pwm_duty) {
-      g_bldc_motor2.pwm_duty += 1;
+      g_bldc_motor2.pwm_duty += DUTY_STEP_UP;
     } else if (g_bldc_motor2.pwm_duty_target < g_bldc_motor2.pwm_duty) {
-      g_bldc_motor2.pwm_duty -= 1;
+      g_bldc_motor2.pwm_duty -= DUTY_STEP_DOWN;
     }
     // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
   }
