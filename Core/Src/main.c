@@ -175,12 +175,12 @@ int main(void)
     else if (key == KEY2_PRES)      //按下key0停止电机
     {
       pwm_duty_temp = 0;
-      stop_motor1();
       g_bldc_motor1.pwm_duty_target = 0;
+      g_bldc_motor2.pwm_duty_target = 0;
       // g_bldc_motor1.run_flag = STOP;
       
+      stop_motor1();
       stop_motor2();
-      g_bldc_motor2.pwm_duty_target = 0;
       // g_bldc_motor2.run_flag = STOP;
 
     }
