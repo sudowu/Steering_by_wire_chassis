@@ -29,6 +29,7 @@ typedef struct
     __IO uint8_t hall_sta_edge;             /* 单个霍尔状态跳变 */
     __IO uint8_t step_last;                 /* 上次霍尔状态 */
     __IO uint8_t dir;                       /* 电机旋转方向 */
+    __IO uint8_t dir_last;                       /* 电机旋转方向 */
     __IO int32_t pos;                       /* 电机位置 */
     __IO int32_t speed;                     /* 电机速度 */
     __IO int16_t current;                   /* 电机速度 */

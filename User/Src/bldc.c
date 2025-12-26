@@ -11,10 +11,10 @@
 #include "tim.h"
 #include <stdint.h>
 
-bldc_obj g_bldc_motor1 = {STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
-                          0,    0, 0, 0,   0, 0, 0, 0}; /* 电机结构体 */
-bldc_obj g_bldc_motor2 = {STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
-                          0,    0, 0, 0,   0, 0, 0, 0}; /* 电机结构体 */
+bldc_obj g_bldc_motor1 = {STOP, 0, 0, CCW, CCW, 0, 0, 0, 0,
+                          0,    0, 0, 0,   0,   0, 0, 0, 0}; /* 电机结构体 */
+bldc_obj g_bldc_motor2 = {STOP, 0, 0, CCW, CCW, 0, 0, 0, 0,
+                          0,    0, 0, 0,   0,   0, 0, 0, 0}; /* 电机结构体 */
 
 const uint8_t hall_table_cw[6] = {6, 2, 3, 1, 5, 4};  /* 顺时针旋转表 */
 const uint8_t hall_table_ccw[6] = {5, 1, 3, 2, 6, 4}; /* 逆时针旋转表 */
@@ -39,8 +39,7 @@ void stop_motor1(void) {
   /* 关闭半桥芯片输出 */
   uint8_t time_count = 0;
   g_bldc_motor1.pwm_duty_target = 0;
-  while (g_bldc_motor1.pwm_duty && time_count <= 20)
-  {
+  while (g_bldc_motor1.pwm_duty && time_count <= 20) {
     HAL_Delay(100);
     time_count++;
   }
@@ -63,8 +62,7 @@ void stop_motor2(void) {
   {
     uint8_t time_count = 0;
     g_bldc_motor2.pwm_duty_target = 0;
-    while (g_bldc_motor2.pwm_duty && time_count <= 20)
-    {
+    while (g_bldc_motor2.pwm_duty && time_count <= 20) {
       HAL_Delay(100);
       time_count++;
     }
@@ -276,12 +274,12 @@ void m2_whvl(void) {
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   uint8_t bldc_dir = 0;
   if (htim->Instance == TIM1) {
-    if (g_bldc_motor1.run_flag == RUN) {
+    if (g_bldc_motor1.run_flag == RUN  && g_bldc_motor1.dir_last == g_bldc_motor1.dir) {
 
       // 读取霍尔值获取转子位置
-      if (g_bldc_motor1.dir == CW) {
+      if (g_bldc_motor1.dir == CW){
         g_bldc_motor1.step_sta = hallsensor_get_state(MOTOR_1);
-      } else {
+      } else if (g_bldc_motor1.dir == CCW) {
         g_bldc_motor1.step_sta = 7 - hallsensor_get_state(MOTOR_1);
       }
       // 判断霍尔值是否正常，驱动电机1
@@ -357,6 +355,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
       g_bldc_motor2.pwm_duty += DUTY_STEP_UP;
     } else if (g_bldc_motor2.pwm_duty_target < g_bldc_motor2.pwm_duty) {
       g_bldc_motor2.pwm_duty -= DUTY_STEP_DOWN;
+    }
+    if (g_bldc_motor1.pwm_duty == 0) {
+      g_bldc_motor1.dir_last = g_bldc_motor1.dir;
+    }
+    if (g_bldc_motor1.dir != g_bldc_motor1.dir_last) {
+      g_bldc_motor1.pwm_duty_target = 0;
+    }
+    if (g_bldc_motor2.pwm_duty == 0) {
+      g_bldc_motor2.dir_last = g_bldc_motor2.dir;
+    }
+    if (g_bldc_motor2.dir != g_bldc_motor2.dir_last) {
+      g_bldc_motor2.pwm_duty_target = 0;
     }
     // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
   }

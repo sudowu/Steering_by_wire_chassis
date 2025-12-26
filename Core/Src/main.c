@@ -146,8 +146,8 @@ int main(void)
         g_bldc_motor2.dir = CCW;
       }
       g_bldc_motor1.run_flag = RUN;
-      start_motor1();
       g_bldc_motor2.run_flag = RUN;
+      start_motor1();
       start_motor2();
     }
     else if (key == KEY1_PRES)      //按下key1占空比--
@@ -168,8 +168,8 @@ int main(void)
         g_bldc_motor2.dir = CCW;
       }
       g_bldc_motor1.run_flag = RUN;
-      start_motor1();
       g_bldc_motor2.run_flag = RUN;
+      start_motor1();
       start_motor2();
     }
     else if (key == KEY2_PRES)      //按下key0停止电机
