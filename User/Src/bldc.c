@@ -11,10 +11,10 @@
 #include "tim.h"
 #include <stdint.h>
 
-bldc_obj g_bldc_motor1 = {STOP, 0, 0, CCW, CCW, 0, 0, 0, 0,
-                          0,    0, 0, 0,   0,   0, 0, 0, 0}; /* 电机结构体 */
-bldc_obj g_bldc_motor2 = {STOP, 0, 0, CCW, CCW, 0, 0, 0, 0,
-                          0,    0, 0, 0,   0,   0, 0, 0, 0}; /* 电机结构体 */
+bldc_obj g_bldc_motor1 = {0, STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
+                          0, 0,    0, 0, 0,   0, 0, 0, 0}; /* 电机结构体 */
+bldc_obj g_bldc_motor2 = {0, STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
+                          0, 0,    0, 0, 0,   0, 0, 0, 0}; /* 电机结构体 */
 
 const uint8_t hall_table_cw[6] = {6, 2, 3, 1, 5, 4};  /* 顺时针旋转表 */
 const uint8_t hall_table_ccw[6] = {5, 1, 3, 2, 6, 4}; /* 逆时针旋转表 */
@@ -26,12 +26,12 @@ const uint8_t hall_ccw_table[12] = {0x45, 0x51, 0x13, 0x32, 0x26, 0x64,
 
 void bldc_ctrl(uint8_t motor_id, int32_t dir, float duty) {
   if (motor_id == MOTOR_1) {
-    g_bldc_motor1.dir = dir;       /* 方向 */
-    g_bldc_motor1.pwm_duty = duty; /* 占空比 */
+    g_bldc_motor1.dir_set = dir;          /* 方向 */
+    g_bldc_motor1.pwm_duty_target = duty; /* 占空比 */
   }
   if (motor_id == MOTOR_2) {
-    g_bldc_motor2.dir = dir;       /* 方向 */
-    g_bldc_motor2.pwm_duty = duty; /* 占空比 */
+    g_bldc_motor2.dir_set = dir;          /* 方向 */
+    g_bldc_motor2.pwm_duty_target = duty; /* 占空比 */
   }
 }
 
@@ -277,7 +277,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (g_bldc_motor1.run_flag == RUN) {
 
       // 读取霍尔值获取转子位置
-      if (g_bldc_motor1.dir == CW){
+      if (g_bldc_motor1.dir == CW) {
         g_bldc_motor1.step_sta = hallsensor_get_state(MOTOR_1);
       } else if (g_bldc_motor1.dir == CCW) {
         g_bldc_motor1.step_sta = 7 - hallsensor_get_state(MOTOR_1);
@@ -342,10 +342,42 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     }
   } else if (htim->Instance == TIM6) {
     // 电机1实际占空比控制
-    // if (g_bldc_motor1.pwm_duty_target == 500 && g_bldc_motor1.pwm_duty == 0)
-    // {
-    //   g_bldc_motor1.pwm_duty = g_bldc_motor1.pwm_duty_target;
-    // }
+
+    //电机换向控制
+    if (g_bldc_motor1.dir != g_bldc_motor1.dir_set) {
+      if (g_bldc_motor1.pwm_duty == 0) {
+        g_bldc_motor1.dir = g_bldc_motor1.dir_set;
+      } else {
+        g_bldc_motor1.pwm_duty_target = 0;
+      }
+    }
+    if (g_bldc_motor2.dir != g_bldc_motor2.dir_set) {
+      if (g_bldc_motor2.pwm_duty == 0) {
+        g_bldc_motor2.dir = g_bldc_motor2.dir_set;
+      } else {
+        g_bldc_motor2.pwm_duty_target = 0;
+      }
+    }
+
+    if (g_bldc_motor1.valid_data_num <= 0 || g_bldc_motor2.valid_data_num <= 0) {
+      g_bldc_motor1.pwm_duty_target = 0;
+      g_bldc_motor2.pwm_duty_target = 0;
+    }
+    else {
+      g_bldc_motor1.valid_data_num--;
+    }
+    
+    //电机限速控制
+    if (g_bldc_motor1.pwm_duty_target > (MAX_PWM_DUTY / 2) ||
+        g_bldc_motor1.pwm_duty_target < -(MAX_PWM_DUTY / 2)) {
+      g_bldc_motor1.pwm_duty_target = g_bldc_motor1.pwm_duty;
+    }
+    if (g_bldc_motor2.pwm_duty_target > (MAX_PWM_DUTY / 2) ||
+        g_bldc_motor2.pwm_duty_target < -(MAX_PWM_DUTY / 2)) {
+      g_bldc_motor2.pwm_duty_target = g_bldc_motor2.pwm_duty;
+    }
+
+    //电机缓加速缓减速控制
     if (g_bldc_motor1.pwm_duty_target > g_bldc_motor1.pwm_duty) {
       g_bldc_motor1.pwm_duty += DUTY_STEP_UP;
     } else if (g_bldc_motor1.pwm_duty_target < g_bldc_motor1.pwm_duty) {
@@ -355,19 +387,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
       g_bldc_motor2.pwm_duty += DUTY_STEP_UP;
     } else if (g_bldc_motor2.pwm_duty_target < g_bldc_motor2.pwm_duty) {
       g_bldc_motor2.pwm_duty -= DUTY_STEP_DOWN;
-    }
-    if (g_bldc_motor1.pwm_duty == 0) {
-      g_bldc_motor1.dir = g_bldc_motor1.dir_set;
-    }
-    if (g_bldc_motor2.pwm_duty == 0) {
-      g_bldc_motor2.dir = g_bldc_motor2.dir_set;
-    }
-
-    if (g_bldc_motor1.dir != g_bldc_motor1.dir_set) {
-      g_bldc_motor1.pwm_duty_target = 0;
-    }
-    if (g_bldc_motor2.dir != g_bldc_motor2.dir_set) {
-      g_bldc_motor2.pwm_duty_target = 0;
     }
     // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
   }

@@ -44,6 +44,20 @@
                 }
             ],
             "verbose": true
+        },
+        {
+            "name": "chassis",
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "runEntry": "main",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${workspaceFolder}/build/Debug/BLDC.elf"
+                }
+            ],
+            "verbose": false
         }
     ]
 }

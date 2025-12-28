@@ -22,6 +22,7 @@
 
 typedef struct
 {
+    __IO uint16_t valid_data_num;            /* CAN数据有效次数*/  //后续移动到底盘变量中
     __IO uint8_t run_flag;                  /* 运行标志 */
     __IO uint8_t locket_rotor;              /* 堵转标记 */
     __IO uint8_t step_sta;                  /* 本次霍尔状态 */
@@ -52,7 +53,7 @@ extern bldc_obj g_bldc_motor2;
 #define SHUTDOWN2_EN    HAL_GPIO_WritePin(SHUTDOWN2_GPIO_Port, SHUTDOWN2_Pin, GPIO_PIN_SET);
 #define SHUTDOWN2_OFF   HAL_GPIO_WritePin(SHUTDOWN2_GPIO_Port, SHUTDOWN2_Pin, GPIO_PIN_RESET);
 
-#define MAX_PWM_DUTY    ((10000-1)*0.96)
+#define MAX_PWM_DUTY    ((4000-1)*0.96)
 
 typedef void(*pctr) (void);
 

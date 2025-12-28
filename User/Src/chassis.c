@@ -3,6 +3,7 @@
 #include "main.h"
 #include "can.h"
 #include "stdio.h"
+#include "stm32_hal_legacy.h"
 #include <stdint.h>
 
 chassis_obj s_chassis = {&g_bldc_motor1, &g_bldc_motor2, 0, 0, 0};
@@ -10,30 +11,33 @@ chassis_obj s_chassis = {&g_bldc_motor1, &g_bldc_motor2, 0, 0, 0};
 
 void chassis_control(chassis_obj* chassis)
 {
-    if (chassis->velocity_x >= 0) {
-        chassis->bldc1->pwm_duty_target = chassis->velocity_x;
-        chassis->bldc2->pwm_duty_target = chassis->velocity_x;
-    }
+  int32_t duty1 = chassis->velocity_x;
+  int32_t duty2 = chassis->velocity_x - chassis->velocity_z;
+  if (duty1 >= 0) {
+    chassis->bldc1->pwm_duty_target = duty1;
+    chassis->bldc1->dir_set = CCW;
+    duty2 = chassis->velocity_x - chassis->velocity_z;
+  }
+  else {
+    chassis->bldc1->pwm_duty_target = -duty1;
+    chassis->bldc1->dir_set = CW;
+    duty2 = chassis->velocity_x + chassis->velocity_z;
+  }
+  if (duty2 >= 0) {
+    chassis->bldc2->pwm_duty_target = duty2;
+    chassis->bldc2->dir_set = CW;
+  }
+  else {
+    chassis->bldc2->pwm_duty_target = -duty2;
+    chassis->bldc2->dir_set = CCW;
+  }
+  chassis->bldc1->valid_data_num = 1000;
+  chassis->bldc2->valid_data_num = 1000;
 
-    
-      if (chassis->velocity_x > MAX_PWM_DUTY/2) 
-        chassis->velocity_x  = MAX_PWM_DUTY/2;
-      if (chassis->velocity_x > 0) {
-        g_bldc_motor1.pwm_duty_target = chassis->velocity_x;
-        g_bldc_motor1.dir_set = CCW;
-        g_bldc_motor2.pwm_duty_target = chassis->velocity_x;
-        g_bldc_motor2.dir_set = CW;
-      }
-      else {
-        g_bldc_motor1.pwm_duty_target = -chassis->velocity_x;
-        g_bldc_motor1.dir_set = CW;
-        g_bldc_motor2.pwm_duty_target = -chassis->velocity_x;
-        g_bldc_motor2.dir_set = CCW;
-      }
-      g_bldc_motor1.run_flag = RUN;
-      g_bldc_motor2.run_flag = RUN;
-      start_motor1();
-      start_motor2();
+  g_bldc_motor1.run_flag = RUN;
+  g_bldc_motor2.run_flag = RUN;
+  start_motor1();
+  start_motor2();
 }
 
 
@@ -48,7 +52,15 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     printf("\r\n");
     if (RxHeader.StdId == 0x08) {
       s_chassis.velocity_x = RxData[0] | RxData[1] << 8;
+      s_chassis.velocity_z = RxData[2] | RxData[3] << 8;
+      if (s_chassis.velocity_x > 32767) {
+        s_chassis.velocity_x = s_chassis.velocity_x - 65536;
+      }
+      if (s_chassis.velocity_z > 32767) {
+        s_chassis.velocity_z = s_chassis.velocity_z - 65536;
+      }
       chassis_control(&s_chassis);
+      printf("pwm:%d\r\n",s_chassis.velocity_x);
     }
     
   }
