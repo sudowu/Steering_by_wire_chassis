@@ -1,24 +1,23 @@
 #include "chassis.h"
 #include "bldc.h"
-#include "main.h"
 #include "can.h"
+#include "main.h"
 #include "stdio.h"
 #include "stm32_hal_legacy.h"
 #include <stdint.h>
 
-chassis_obj s_chassis = {&g_bldc_motor1, &g_bldc_motor2, 0, 0, 0};
+
+chassis_obj s_chassis = {&g_bldc_motor1, &g_bldc_motor2, 0, 0, 0, 0, 0};
 
 
-void chassis_control(chassis_obj* chassis)
-{
+void chassis_control(chassis_obj *chassis) {
   int32_t duty1 = chassis->velocity_x;
   int32_t duty2 = chassis->velocity_x - chassis->velocity_z;
   if (duty1 >= 0) {
     chassis->bldc1->pwm_duty_target = duty1;
     chassis->bldc1->dir_set = CCW;
     duty2 = chassis->velocity_x - chassis->velocity_z;
-  }
-  else {
+  } else {
     chassis->bldc1->pwm_duty_target = -duty1;
     chassis->bldc1->dir_set = CW;
     duty2 = chassis->velocity_x + chassis->velocity_z;
@@ -26,8 +25,7 @@ void chassis_control(chassis_obj* chassis)
   if (duty2 >= 0) {
     chassis->bldc2->pwm_duty_target = duty2;
     chassis->bldc2->dir_set = CW;
-  }
-  else {
+  } else {
     chassis->bldc2->pwm_duty_target = -duty2;
     chassis->bldc2->dir_set = CCW;
   }
@@ -40,14 +38,12 @@ void chassis_control(chassis_obj* chassis)
   start_motor2();
 }
 
-
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
   if (hcan->Instance == CAN1) {
-    HAL_CAN_GetRxMessage(hcan,CAN_RX_FIFO0 , &RxHeader, RxData);
-    printf("ID:%d len:%d data:",(int)RxHeader.StdId, (int)RxHeader.DLC);
+    HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData);
+    printf("ID:%d len:%d data:", (int)RxHeader.StdId, (int)RxHeader.DLC);
     for (uint32_t i = 0; i < RxHeader.DLC; i++) {
-      printf("%x ",RxData[i]);
+      printf("%x ", RxData[i]);
     }
     printf("\r\n");
     if (RxHeader.StdId == 0x08) {
@@ -60,9 +56,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
         s_chassis.velocity_z = s_chassis.velocity_z - 65536;
       }
       chassis_control(&s_chassis);
-      printf("pwm:%d\r\n",s_chassis.velocity_x);
+      printf("pwm:%d\r\n", s_chassis.velocity_x);
     }
-    
   }
 }
-

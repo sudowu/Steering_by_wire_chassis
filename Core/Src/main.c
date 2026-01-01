@@ -26,11 +26,13 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "bldc.h"
+#include "chassis.h"
 #include "key.h"
 #include "led.h"
+#include "stdio.h"
 #include <stdint.h>
 #include <sys/_intsup.h>
-#include "stdio.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -73,11 +75,11 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  
-    uint8_t key = 0, t = 0;
+
+  uint8_t key = 0, t = 0;
   int16_t pwm_duty_temp = 0;
   int16_t pwm_duty_last = 0;
-  uint8_t data[8] = {1,2,3,4,5,6,7,8};
+  uint8_t data[8] = {1, 2, 3, 4, 5, 6, 7, 8};
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -103,13 +105,14 @@ int main(void)
   MX_USART1_UART_Init();
   MX_CAN1_Init();
   MX_TIM6_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
   bldc_ctrl(MOTOR_1, CCW, 0);
   bldc_ctrl(MOTOR_2, CCW, 0);
 
-  printf("按下KEY0 开始正转加速\r\n");
-  printf("按下KEY1 开始反转加速\r\n");
-  printf("按下KEY2 停止电机\r\n");
+  // printf("按下KEY0 开始正转加速\r\n");
+  // printf("按下KEY1 开始反转加速\r\n");
+  // printf("按下KEY2 停止电机\r\n");
 
   /* USER CODE END 2 */
 
@@ -124,68 +127,74 @@ int main(void)
     }
     if (pwm_duty_last != pwm_duty_temp) {
       pwm_duty_last = pwm_duty_temp;
-      printf("pwm:%d\r\n",pwm_duty_last);
+      printf("pwm:%d\r\n", pwm_duty_last);
     }
+    if (HAL_GPIO_ReadPin(REMOTE_CH2_GPIO_Port, REMOTE_CH2_Pin) ==
+        GPIO_PIN_RESET) {
+      s_chassis.remote_count_ch2++;
+    }
+    if (HAL_GPIO_ReadPin(REMOTE_CH4_GPIO_Port, REMOTE_CH4_Pin) ==
+        GPIO_PIN_RESET) {
+      s_chassis.remote_count_ch4++;
+    }
+    // key = key_scan();
+    // if (key == KEY0_PRES)           //按下key0占空比++
+    // {
+    //   pwm_duty_temp += 500;
+    //   if (pwm_duty_temp > MAX_PWM_DUTY/2)
+    //     pwm_duty_temp = pwm_duty_last;
+    //   if (pwm_duty_temp > 0) {
+    //     g_bldc_motor1.pwm_duty_target = pwm_duty_temp;
+    //     g_bldc_motor1.dir_set = CW;
+    //     g_bldc_motor2.pwm_duty_target = pwm_duty_temp;
+    //     g_bldc_motor2.dir_set = CW;
+    //   }
+    //   else {
+    //     g_bldc_motor1.pwm_duty_target = -pwm_duty_temp;
+    //     g_bldc_motor1.dir_set = CCW;
+    //     g_bldc_motor2.pwm_duty_target = -pwm_duty_temp;
+    //     g_bldc_motor2.dir_set = CCW;
+    //   }
+    //   g_bldc_motor1.run_flag = RUN;
+    //   g_bldc_motor2.run_flag = RUN;
+    //   start_motor1();
+    //   start_motor2();
+    // }
+    // else if (key == KEY1_PRES)      //按下key1占空比--
+    // {
+    //   pwm_duty_temp -= 500;
+    //   if (pwm_duty_temp < -(MAX_PWM_DUTY/2))
+    //     pwm_duty_temp = pwm_duty_last;
+    //   if (pwm_duty_temp > 0) {
+    //     g_bldc_motor1.pwm_duty_target = pwm_duty_temp;
+    //     g_bldc_motor1.dir_set = CW;
+    //     g_bldc_motor2.pwm_duty_target = pwm_duty_temp;
+    //     g_bldc_motor2.dir_set = CW;
+    //   }
+    //   else {
+    //     g_bldc_motor1.pwm_duty_target = -pwm_duty_temp;
+    //     g_bldc_motor1.dir_set = CCW;
+    //     g_bldc_motor2.pwm_duty_target = -pwm_duty_temp;
+    //     g_bldc_motor2.dir_set = CCW;
+    //   }
+    //   g_bldc_motor1.run_flag = RUN;
+    //   g_bldc_motor2.run_flag = RUN;
+    //   start_motor1();
+    //   start_motor2();
+    // }
+    // else if (key == KEY2_PRES)      //按下key0停止电机
+    // {
+    //   pwm_duty_temp = 0;
+    //   g_bldc_motor1.pwm_duty_target = 0;
+    //   g_bldc_motor2.pwm_duty_target = 0;
+    //   // g_bldc_motor1.run_flag = STOP;
 
-    key = key_scan();
-    if (key == KEY0_PRES)           //按下key0占空比++
-    {
-      pwm_duty_temp += 500;
-      if (pwm_duty_temp > MAX_PWM_DUTY/2) 
-        pwm_duty_temp = pwm_duty_last;
-      if (pwm_duty_temp > 0) {
-        g_bldc_motor1.pwm_duty_target = pwm_duty_temp;
-        g_bldc_motor1.dir_set = CW;
-        g_bldc_motor2.pwm_duty_target = pwm_duty_temp;
-        g_bldc_motor2.dir_set = CW;
-      }
-      else {
-        g_bldc_motor1.pwm_duty_target = -pwm_duty_temp;
-        g_bldc_motor1.dir_set = CCW;
-        g_bldc_motor2.pwm_duty_target = -pwm_duty_temp;
-        g_bldc_motor2.dir_set = CCW;
-      }
-      g_bldc_motor1.run_flag = RUN;
-      g_bldc_motor2.run_flag = RUN;
-      start_motor1();
-      start_motor2();
-    }
-    else if (key == KEY1_PRES)      //按下key1占空比--
-    {
-      pwm_duty_temp -= 500;
-      if (pwm_duty_temp < -(MAX_PWM_DUTY/2)) 
-        pwm_duty_temp = pwm_duty_last;
-      if (pwm_duty_temp > 0) {
-        g_bldc_motor1.pwm_duty_target = pwm_duty_temp;
-        g_bldc_motor1.dir_set = CW;
-        g_bldc_motor2.pwm_duty_target = pwm_duty_temp;
-        g_bldc_motor2.dir_set = CW;
-      }
-      else {
-        g_bldc_motor1.pwm_duty_target = -pwm_duty_temp;
-        g_bldc_motor1.dir_set = CCW;
-        g_bldc_motor2.pwm_duty_target = -pwm_duty_temp;
-        g_bldc_motor2.dir_set = CCW;
-      }
-      g_bldc_motor1.run_flag = RUN;
-      g_bldc_motor2.run_flag = RUN;
-      start_motor1();
-      start_motor2();
-    }
-    else if (key == KEY2_PRES)      //按下key0停止电机
-    {
-      pwm_duty_temp = 0;
-      g_bldc_motor1.pwm_duty_target = 0;
-      g_bldc_motor2.pwm_duty_target = 0;
-      // g_bldc_motor1.run_flag = STOP;
-      
-      stop_motor1();
-      stop_motor2();
-      // g_bldc_motor2.run_flag = STOP;
+    //   stop_motor1();
+    //   stop_motor2();
+    //   // g_bldc_motor2.run_flag = STOP;
 
-    }
-    HAL_Delay(10);
-    
+    // }
+    // HAL_Delay(10);
 
     /* USER CODE END WHILE */
 

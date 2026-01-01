@@ -10,6 +10,8 @@
 #include "stm32f4xx_hal_gpio.h"
 #include "tim.h"
 #include <stdint.h>
+#include <stdio.h>
+#include "chassis.h"
 
 bldc_obj g_bldc_motor1 = {0, STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
                           0, 0,    0, 0, 0,   0, 0, 0, 0}; /* 电机结构体 */
@@ -344,6 +346,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     // 电机1实际占空比控制
 
     //电机换向控制
+
     if (g_bldc_motor1.dir != g_bldc_motor1.dir_set) {
       if (g_bldc_motor1.pwm_duty == 0) {
         g_bldc_motor1.dir = g_bldc_motor1.dir_set;
@@ -389,5 +392,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
       g_bldc_motor2.pwm_duty -= DUTY_STEP_DOWN;
     }
     // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
+  }
+  else if (htim->Instance == TIM7) {
+    uint32_t ch2 = 0,ch4 = 0;
+    ch2 = s_chassis.remote_count_ch2;
+    ch4 = s_chassis.remote_count_ch4;
+    s_chassis.remote_count_ch2 = 0;
+    s_chassis.remote_count_ch4 = 0;
+    printf("ch2:%d\r\n",ch2);
+    printf("ch4:%d\r\n",ch4); 
   }
 }

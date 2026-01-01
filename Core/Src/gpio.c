@@ -51,6 +51,7 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOG_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
@@ -108,6 +109,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : REMOTE_CH2_Pin REMOTE_CH4_Pin */
+  GPIO_InitStruct.Pin = REMOTE_CH2_Pin|REMOTE_CH4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /*Configure GPIO pins : M2_LOW_SIDE_U_Pin M2_LOW_SIDE_V_Pin M2_LOW_SIDE_W_Pin */
   GPIO_InitStruct.Pin = M2_LOW_SIDE_U_Pin|M2_LOW_SIDE_V_Pin|M2_LOW_SIDE_W_Pin;
