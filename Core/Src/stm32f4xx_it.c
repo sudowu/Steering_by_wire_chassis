@@ -18,14 +18,18 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include "adc.h"
 #include "main.h"
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "pwm_duty_analyzer.h"
+#include "stm32f407xx.h"
 #include "usart.h"
 #include "bldc.h"
 #include "chassis.h"
 #include "stdio.h"
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -302,7 +306,7 @@ void TIM6_DAC_IRQHandler(void)
 void DMA2_Stream0_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
-
+  
   /* USER CODE END DMA2_Stream0_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_adc3);
   /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
@@ -458,8 +462,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (HAL_GPIO_ReadPin(REMOTE_CH4_GPIO_Port, REMOTE_CH4_Pin) ==
         GPIO_PIN_RESET) {
       s_chassis.remote_count_ch4++;
+      
     }
     // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
+  }
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+  static uint32_t count = 0;
+  if (hadc->Instance == ADC3 && flag_adc_dma == 0) {
+    adc_buffer1[count] = dma_buffer[0];
+    adc_buffer2[count++] = dma_buffer[1];
+    if (count >= PWM_ADC_BUFFER_SIZE) {
+      flag_adc_dma = 1;
+      count = 0;
+    }
   }
 }
 
