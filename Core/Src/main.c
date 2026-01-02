@@ -18,7 +18,9 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "can.h"
+#include "dma.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -100,12 +102,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_TIM1_Init();
   MX_TIM8_Init();
   MX_USART1_UART_Init();
   MX_CAN1_Init();
   MX_TIM6_Init();
-  MX_TIM7_Init();
+  MX_ADC3_Init();
   /* USER CODE BEGIN 2 */
   bldc_ctrl(MOTOR_1, CCW, 0);
   bldc_ctrl(MOTOR_2, CCW, 0);
@@ -129,14 +132,7 @@ int main(void)
       pwm_duty_last = pwm_duty_temp;
       printf("pwm:%d\r\n", pwm_duty_last);
     }
-    if (HAL_GPIO_ReadPin(REMOTE_CH2_GPIO_Port, REMOTE_CH2_Pin) ==
-        GPIO_PIN_RESET) {
-      s_chassis.remote_count_ch2++;
-    }
-    if (HAL_GPIO_ReadPin(REMOTE_CH4_GPIO_Port, REMOTE_CH4_Pin) ==
-        GPIO_PIN_RESET) {
-      s_chassis.remote_count_ch4++;
-    }
+
     // key = key_scan();
     // if (key == KEY0_PRES)           //按下key0占空比++
     // {
@@ -194,7 +190,7 @@ int main(void)
     //   // g_bldc_motor2.run_flag = STOP;
 
     // }
-    // HAL_Delay(10);
+    HAL_Delay(10);
 
     /* USER CODE END WHILE */
 

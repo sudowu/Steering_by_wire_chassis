@@ -67,6 +67,10 @@ void Error_Handler(void);
 #define BEEP_GPIO_Port GPIOF
 #define SHUTDOWN2_Pin GPIO_PIN_2
 #define SHUTDOWN2_GPIO_Port GPIOF
+#define REMOTE_CH2_Pin GPIO_PIN_7
+#define REMOTE_CH2_GPIO_Port GPIOF
+#define REMOTE_CH4_Pin GPIO_PIN_8
+#define REMOTE_CH4_GPIO_Port GPIOF
 #define SHUTDOWN1_Pin GPIO_PIN_10
 #define SHUTDOWN1_GPIO_Port GPIOF
 #define HALL1_TIM_CH1_Pin GPIO_PIN_10
@@ -85,10 +89,6 @@ void Error_Handler(void);
 #define HALL2_TIM_CH1_GPIO_Port GPIOD
 #define HALL2_TIM_CH2_Pin GPIO_PIN_13
 #define HALL2_TIM_CH2_GPIO_Port GPIOD
-#define REMOTE_CH2_Pin GPIO_PIN_2
-#define REMOTE_CH2_GPIO_Port GPIOG
-#define REMOTE_CH4_Pin GPIO_PIN_3
-#define REMOTE_CH4_GPIO_Port GPIOG
 #define M2_LOW_SIDE_U_Pin GPIO_PIN_13
 #define M2_LOW_SIDE_U_GPIO_Port GPIOH
 #define M2_LOW_SIDE_V_Pin GPIO_PIN_14

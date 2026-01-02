@@ -4,6 +4,7 @@
 
 #include "../Inc/bldc.h"
 
+#include "chassis.h"
 #include "main.h"
 #include "stm32f407xx.h"
 #include "stm32f4xx_hal.h"
@@ -11,7 +12,6 @@
 #include "tim.h"
 #include <stdint.h>
 #include <stdio.h>
-#include "chassis.h"
 
 bldc_obj g_bldc_motor1 = {0, STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
                           0, 0,    0, 0, 0,   0, 0, 0, 0}; /* 电机结构体 */
@@ -273,133 +273,4 @@ void m2_whvl(void) {
   HAL_GPIO_WritePin(M2_LOW_SIDE_W_GPIO_Port, M2_LOW_SIDE_W_Pin, GPIO_PIN_RESET);
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-  uint8_t bldc_dir = 0;
-  if (htim->Instance == TIM1) {
-    if (g_bldc_motor1.run_flag == RUN) {
 
-      // 读取霍尔值获取转子位置
-      if (g_bldc_motor1.dir == CW) {
-        g_bldc_motor1.step_sta = hallsensor_get_state(MOTOR_1);
-      } else if (g_bldc_motor1.dir == CCW) {
-        g_bldc_motor1.step_sta = 7 - hallsensor_get_state(MOTOR_1);
-      }
-      // 判断霍尔值是否正常，驱动电机1
-      if (g_bldc_motor1.step_sta <= 6 && g_bldc_motor1.step_sta >= 1) {
-        pfunclist_m1[g_bldc_motor1.step_sta - 1]();
-      } else {
-        stop_motor1();
-        g_bldc_motor1.run_flag = STOP;
-        g_bldc_motor1.pwm_duty = 0;
-      }
-      // 如果读取霍尔值不同则进行换向
-      if (g_bldc_motor1.step_sta != g_bldc_motor1.step_last) {
-        g_bldc_motor1.hall_keep_t = 0;
-        bldc_dir = check_hall_dir(&g_bldc_motor1);
-        if (bldc_dir == CW) {
-          g_bldc_motor1.pos += 1;
-        } else if (bldc_dir == CCW) {
-          g_bldc_motor1.pos -= 1;
-        }
-        g_bldc_motor1.step_last = g_bldc_motor1.step_sta;
-      }
-      // else if (g_bldc_motor1.run_flag == RUN) {
-      //   g_bldc_motor1.hall_keep_t++;
-      // }
-    }
-  }
-  // 电机2
-  else if (htim->Instance == TIM8) {
-    if (g_bldc_motor2.run_flag == RUN) {
-      // 电机1实际占空比控制
-
-      // 读取霍尔值获取转子位置
-      if (g_bldc_motor2.dir == CW) {
-        g_bldc_motor2.step_sta = hallsensor_get_state(MOTOR_2);
-      } else {
-        g_bldc_motor2.step_sta = 7 - hallsensor_get_state(MOTOR_2);
-      }
-      // 判断霍尔值是否正常，驱动电机2
-      if (g_bldc_motor2.step_sta <= 6 && g_bldc_motor2.step_sta >= 1) {
-        pfunclist_m2[g_bldc_motor2.step_sta - 1]();
-      } else {
-        stop_motor2();
-        g_bldc_motor2.run_flag = STOP;
-        g_bldc_motor2.pwm_duty = 0;
-      }
-      // 如果读取霍尔值不同则进行换向
-      if (g_bldc_motor2.step_sta != g_bldc_motor2.step_last) {
-        g_bldc_motor2.hall_keep_t = 0;
-        bldc_dir = check_hall_dir(&g_bldc_motor2);
-        if (bldc_dir == CW) {
-          g_bldc_motor2.pos += 1;
-        } else if (bldc_dir == CCW) {
-          g_bldc_motor2.pos -= 1;
-        }
-        g_bldc_motor2.step_last = g_bldc_motor2.step_sta;
-      }
-      // else if (g_bldc_motor2.run_flag == RUN) {
-      //   g_bldc_motor2.hall_keep_t++;
-      // }
-    }
-  } else if (htim->Instance == TIM6) {
-    // 电机1实际占空比控制
-
-    //电机换向控制
-
-    if (g_bldc_motor1.dir != g_bldc_motor1.dir_set) {
-      if (g_bldc_motor1.pwm_duty == 0) {
-        g_bldc_motor1.dir = g_bldc_motor1.dir_set;
-      } else {
-        g_bldc_motor1.pwm_duty_target = 0;
-      }
-    }
-    if (g_bldc_motor2.dir != g_bldc_motor2.dir_set) {
-      if (g_bldc_motor2.pwm_duty == 0) {
-        g_bldc_motor2.dir = g_bldc_motor2.dir_set;
-      } else {
-        g_bldc_motor2.pwm_duty_target = 0;
-      }
-    }
-
-    if (g_bldc_motor1.valid_data_num <= 0 || g_bldc_motor2.valid_data_num <= 0) {
-      g_bldc_motor1.pwm_duty_target = 0;
-      g_bldc_motor2.pwm_duty_target = 0;
-    }
-    else {
-      g_bldc_motor1.valid_data_num--;
-    }
-    
-    //电机限速控制
-    if (g_bldc_motor1.pwm_duty_target > (MAX_PWM_DUTY / 2) ||
-        g_bldc_motor1.pwm_duty_target < -(MAX_PWM_DUTY / 2)) {
-      g_bldc_motor1.pwm_duty_target = g_bldc_motor1.pwm_duty;
-    }
-    if (g_bldc_motor2.pwm_duty_target > (MAX_PWM_DUTY / 2) ||
-        g_bldc_motor2.pwm_duty_target < -(MAX_PWM_DUTY / 2)) {
-      g_bldc_motor2.pwm_duty_target = g_bldc_motor2.pwm_duty;
-    }
-
-    //电机缓加速缓减速控制
-    if (g_bldc_motor1.pwm_duty_target > g_bldc_motor1.pwm_duty) {
-      g_bldc_motor1.pwm_duty += DUTY_STEP_UP;
-    } else if (g_bldc_motor1.pwm_duty_target < g_bldc_motor1.pwm_duty) {
-      g_bldc_motor1.pwm_duty -= DUTY_STEP_DOWN;
-    }
-    if (g_bldc_motor2.pwm_duty_target > g_bldc_motor2.pwm_duty) {
-      g_bldc_motor2.pwm_duty += DUTY_STEP_UP;
-    } else if (g_bldc_motor2.pwm_duty_target < g_bldc_motor2.pwm_duty) {
-      g_bldc_motor2.pwm_duty -= DUTY_STEP_DOWN;
-    }
-    // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
-  }
-  else if (htim->Instance == TIM7) {
-    uint32_t ch2 = 0,ch4 = 0;
-    ch2 = s_chassis.remote_count_ch2;
-    ch4 = s_chassis.remote_count_ch4;
-    s_chassis.remote_count_ch2 = 0;
-    s_chassis.remote_count_ch4 = 0;
-    printf("ch2:%d\r\n",ch2);
-    printf("ch4:%d\r\n",ch4); 
-  }
-}

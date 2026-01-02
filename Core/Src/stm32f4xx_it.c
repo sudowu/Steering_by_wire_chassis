@@ -23,6 +23,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usart.h"
+#include "bldc.h"
+#include "chassis.h"
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,10 +59,10 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern DMA_HandleTypeDef hdma_adc3;
 extern CAN_HandleTypeDef hcan1;
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim6;
-extern TIM_HandleTypeDef htim7;
 extern TIM_HandleTypeDef htim8;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
@@ -294,19 +297,177 @@ void TIM6_DAC_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles TIM7 global interrupt.
+  * @brief This function handles DMA2 stream0 global interrupt.
   */
-void TIM7_IRQHandler(void)
+void DMA2_Stream0_IRQHandler(void)
 {
-  /* USER CODE BEGIN TIM7_IRQn 0 */
+  /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
 
-  /* USER CODE END TIM7_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim7);
-  /* USER CODE BEGIN TIM7_IRQn 1 */
+  /* USER CODE END DMA2_Stream0_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_adc3);
+  /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
 
-  /* USER CODE END TIM7_IRQn 1 */
+  /* USER CODE END DMA2_Stream0_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+  uint8_t bldc_dir = 0;
+  if (htim->Instance == TIM1) {
+    if (g_bldc_motor1.run_flag == RUN) {
 
+      // 读取霍尔值获取转子位置
+      if (g_bldc_motor1.dir == CW) {
+        g_bldc_motor1.step_sta = hallsensor_get_state(MOTOR_1);
+      } else if (g_bldc_motor1.dir == CCW) {
+        g_bldc_motor1.step_sta = 7 - hallsensor_get_state(MOTOR_1);
+      }
+      // 判断霍尔值是否正常，驱动电机1
+      if (g_bldc_motor1.step_sta <= 6 && g_bldc_motor1.step_sta >= 1) {
+        pfunclist_m1[g_bldc_motor1.step_sta - 1]();
+      } else {
+        stop_motor1();
+        g_bldc_motor1.run_flag = STOP;
+        g_bldc_motor1.pwm_duty = 0;
+      }
+      // 如果读取霍尔值不同则进行换向
+      if (g_bldc_motor1.step_sta != g_bldc_motor1.step_last) {
+        g_bldc_motor1.hall_keep_t = 0;
+        bldc_dir = check_hall_dir(&g_bldc_motor1);
+        if (bldc_dir == CW) {
+          g_bldc_motor1.pos += 1;
+        } else if (bldc_dir == CCW) {
+          g_bldc_motor1.pos -= 1;
+        }
+        g_bldc_motor1.step_last = g_bldc_motor1.step_sta;
+      }
+      // else if (g_bldc_motor1.run_flag == RUN) {
+      //   g_bldc_motor1.hall_keep_t++;
+      // }
+    }
+  }
+  // 电机2
+  else if (htim->Instance == TIM8) {
+    if (g_bldc_motor2.run_flag == RUN) {
+      // 电机1实际占空比控制
+
+      // 读取霍尔值获取转子位置
+      if (g_bldc_motor2.dir == CW) {
+        g_bldc_motor2.step_sta = hallsensor_get_state(MOTOR_2);
+      } else {
+        g_bldc_motor2.step_sta = 7 - hallsensor_get_state(MOTOR_2);
+      }
+      // 判断霍尔值是否正常，驱动电机2
+      if (g_bldc_motor2.step_sta <= 6 && g_bldc_motor2.step_sta >= 1) {
+        pfunclist_m2[g_bldc_motor2.step_sta - 1]();
+      } else {
+        stop_motor2();
+        g_bldc_motor2.run_flag = STOP;
+        g_bldc_motor2.pwm_duty = 0;
+      }
+      // 如果读取霍尔值不同则进行换向
+      if (g_bldc_motor2.step_sta != g_bldc_motor2.step_last) {
+        g_bldc_motor2.hall_keep_t = 0;
+        bldc_dir = check_hall_dir(&g_bldc_motor2);
+        if (bldc_dir == CW) {
+          g_bldc_motor2.pos += 1;
+        } else if (bldc_dir == CCW) {
+          g_bldc_motor2.pos -= 1;
+        }
+        g_bldc_motor2.step_last = g_bldc_motor2.step_sta;
+      }
+      // else if (g_bldc_motor2.run_flag == RUN) {
+      //   g_bldc_motor2.hall_keep_t++;
+      // }
+    }
+  } else if (htim->Instance == TIM6) {
+    // 电机1实际占空比控制
+
+    // 电机换向控制
+    if (g_bldc_motor1.pwm_duty == 0 && g_bldc_motor1.pwm_duty_target == 0) {
+      HAL_GPIO_WritePin(BRAKE1_GPIO_Port, BRAKE1_Pin, GPIO_PIN_SET);
+    }
+    else {
+      HAL_GPIO_WritePin(BRAKE1_GPIO_Port, BRAKE1_Pin, GPIO_PIN_RESET);
+    }
+    if (g_bldc_motor2.pwm_duty == 0 && g_bldc_motor2.pwm_duty_target == 0) {
+      HAL_GPIO_WritePin(BRAKE2_GPIO_Port, BRAKE2_Pin, GPIO_PIN_SET);
+    }
+    else {
+      HAL_GPIO_WritePin(BRAKE2_GPIO_Port, BRAKE2_Pin, GPIO_PIN_RESET);
+    }
+    if (g_bldc_motor1.dir != g_bldc_motor1.dir_set) {
+      if (g_bldc_motor1.pwm_duty == 0) {
+        g_bldc_motor1.dir = g_bldc_motor1.dir_set;
+      } else {
+        g_bldc_motor1.pwm_duty_target = 0;
+      }
+    }
+    if (g_bldc_motor2.dir != g_bldc_motor2.dir_set) {
+      if (g_bldc_motor2.pwm_duty == 0) {
+        g_bldc_motor2.dir = g_bldc_motor2.dir_set;
+      } else {
+        g_bldc_motor2.pwm_duty_target = 0;
+      }
+    }
+
+    if (g_bldc_motor1.valid_data_num <= 0 ||
+        g_bldc_motor2.valid_data_num <= 0) {
+      g_bldc_motor1.pwm_duty_target = 0;
+      g_bldc_motor2.pwm_duty_target = 0;
+    } else {
+      g_bldc_motor1.valid_data_num--;
+    }
+
+    // 电机限速控制
+    if (g_bldc_motor1.pwm_duty_target > (MAX_PWM_DUTY / 2) ||
+        g_bldc_motor1.pwm_duty_target < -(MAX_PWM_DUTY / 2)) {
+      g_bldc_motor1.pwm_duty_target = g_bldc_motor1.pwm_duty;
+    }
+    if (g_bldc_motor2.pwm_duty_target > (MAX_PWM_DUTY / 2) ||
+        g_bldc_motor2.pwm_duty_target < -(MAX_PWM_DUTY / 2)) {
+      g_bldc_motor2.pwm_duty_target = g_bldc_motor2.pwm_duty;
+    }
+
+    // 电机缓加速缓减速控制
+    if (g_bldc_motor1.pwm_duty_target > g_bldc_motor1.pwm_duty) {
+      g_bldc_motor1.pwm_duty += DUTY_STEP_UP;
+    } else if (g_bldc_motor1.pwm_duty_target < g_bldc_motor1.pwm_duty) {
+      g_bldc_motor1.pwm_duty -= DUTY_STEP_DOWN;
+    }
+    if (g_bldc_motor2.pwm_duty_target > g_bldc_motor2.pwm_duty) {
+      g_bldc_motor2.pwm_duty += DUTY_STEP_UP;
+    } else if (g_bldc_motor2.pwm_duty_target < g_bldc_motor2.pwm_duty) {
+      g_bldc_motor2.pwm_duty -= DUTY_STEP_DOWN;
+    }
+    // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
+  } else if (htim->Instance == TIM7) {
+    uint32_t ch2 = 0, ch4 = 0;
+    ch2 = s_chassis.remote_count_ch2;
+    ch4 = s_chassis.remote_count_ch4;
+    s_chassis.remote_count_ch2 = 0;
+    s_chassis.remote_count_ch4 = 0;
+    printf("ch2:%ld\r\n", ch2);
+    printf("ch4:%ld\r\n", ch4);
+    // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
+  } else if (htim->Instance == TIM3) {
+    if (HAL_GPIO_ReadPin(REMOTE_CH2_GPIO_Port, REMOTE_CH2_Pin) ==
+        GPIO_PIN_RESET) {
+      s_chassis.remote_count_ch2++;
+    }
+    if (HAL_GPIO_ReadPin(REMOTE_CH4_GPIO_Port, REMOTE_CH4_Pin) ==
+        GPIO_PIN_RESET) {
+      s_chassis.remote_count_ch4++;
+    }
+    // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
+  }
+}
+
+// void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+//   if (GPIO_Pin == REMOTE_CH2_EXTI_Pin) {
+//     s_chassis.remote_count_ch2++;
+//   } else if (GPIO_Pin == REMOTE_CH4_EXTI_Pin) {
+//     s_chassis.remote_count_ch4++;
+//   }
+// }
 /* USER CODE END 1 */

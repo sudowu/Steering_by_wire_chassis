@@ -49,6 +49,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ${CMAKE_SOURCE_DIR}/User/Src/bldc.c
         ${CMAKE_SOURCE_DIR}/User/Src/key.c
         ${CMAKE_SOURCE_DIR}/User/Src/chassis.c
+        ${CMAKE_SOURCE_DIR}/User/Src/pwm_duty_analyzer.c
 )
 
 # Add include paths
