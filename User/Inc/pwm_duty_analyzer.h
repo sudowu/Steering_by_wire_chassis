@@ -12,7 +12,7 @@
 
 #include "stm32f4xx_hal.h"
 
-#define PWM_ADC_BUFFER_SIZE        4096    // ADC缓冲区大小
+#define PWM_ADC_BUFFER_SIZE        100    // ADC缓冲区大小
 #define PWM_SAMPLE_RATE_MAX_HZ     2400000 // 最大采样率
 #define PWM_MIN_FREQ_DETECT_HZ     10      // 可检测的最小频率
 
