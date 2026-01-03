@@ -12,7 +12,7 @@
 
 #include "stm32f4xx_hal.h"
 
-#define PWM_ADC_BUFFER_SIZE        100    // ADC缓冲区大小
+#define PWM_ADC_BUFFER_SIZE        1024    // ADC缓冲区大小
 #define PWM_SAMPLE_RATE_MAX_HZ     2400000 // 最大采样率
 #define PWM_MIN_FREQ_DETECT_HZ     10      // 可检测的最小频率
 
@@ -26,14 +26,10 @@ typedef struct {
     uint16_t max_adc_value;         // 最大ADC值
 } pwm_analysis_result_t;
 
-typedef enum {
-    PWM_ANALYSIS_MODE_STATISTICAL = 0,     // 统计模式（适合低频）
-    PWM_ANALYSIS_MODE_EDGE_DETECTION,      // 边沿检测模式（适合高频）
-    PWM_ANALYSIS_MODE_ADAPTIVE             // 自适应模式（自动选择）
-} pwm_analysis_mode_t;
-
-extern uint32_t adc_buffer1[PWM_ADC_BUFFER_SIZE];
-extern uint32_t adc_buffer2[PWM_ADC_BUFFER_SIZE];
+extern uint32_t adc_pwm1_hight_count;
+extern uint32_t adc_pwm2_hight_count;
+extern uint8_t adc_buffer1[PWM_ADC_BUFFER_SIZE];
+extern uint8_t adc_buffer2[PWM_ADC_BUFFER_SIZE];
 extern uint8_t flag_adc_dma;
 #endif /* __PWM_DUTY_ANALYZER_H */
 

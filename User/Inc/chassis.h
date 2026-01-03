@@ -21,5 +21,5 @@ typedef struct {
 } chassis_obj;
 
 extern chassis_obj s_chassis;
-
+void chassis_control(chassis_obj *chassis);
 #endif

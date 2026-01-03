@@ -13,6 +13,9 @@ chassis_obj s_chassis = {&g_bldc_motor1, &g_bldc_motor2, 0, 0, 0, 0, 0};
 void chassis_control(chassis_obj *chassis) {
   int32_t duty1 = chassis->velocity_x;
   int32_t duty2 = chassis->velocity_x - chassis->velocity_z;
+  // if (chassis->velocity_z < 0) {
+  
+  // }
   if (duty1 >= 0) {
     chassis->bldc1->pwm_duty_target = duty1;
     chassis->bldc1->dir_set = CCW;

@@ -9,9 +9,10 @@
 #include <stdint.h>
 #include <string.h>
 
-uint32_t adc_buffer1[PWM_ADC_BUFFER_SIZE] = {0};
-uint32_t adc_buffer2[PWM_ADC_BUFFER_SIZE] = {0};
-
+uint8_t adc_buffer1[PWM_ADC_BUFFER_SIZE] = {0};
+uint8_t adc_buffer2[PWM_ADC_BUFFER_SIZE] = {0};
+uint32_t adc_pwm1_hight_count = 0;
+uint32_t adc_pwm2_hight_count = 0;
 uint8_t flag_adc_dma = 0;
 
 

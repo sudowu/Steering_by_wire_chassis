@@ -34,7 +34,7 @@
 #include "stdio.h"
 #include <stdint.h>
 #include <sys/_intsup.h>
-
+#include "pwm_duty_analyzer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -78,10 +78,12 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
-  uint8_t key = 0, t = 0;
+  int32_t remote_2 = 0, remote_4 = 0; 
+  uint8_t t = 0;
   int16_t pwm_duty_temp = 0;
   int16_t pwm_duty_last = 0;
   uint8_t data[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+  
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -121,17 +123,42 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  // while (adc_pwm1_hight_count != 143);
+  // while (adc_pwm2_hight_count != 143);  
   while (1) {
     t++;
     if (t == 20) {
       LED0_TOGGLE();
       CAN_Send_HAL(0x01, data, 8);
       t = 0;
+      // printf("remote ch2：%d ch4：%d\r\n", adc_pwm2_hight_count,adc_pwm1_hight_count);
+
     }
     if (pwm_duty_last != pwm_duty_temp) {
       pwm_duty_last = pwm_duty_temp;
       printf("pwm:%d\r\n", pwm_duty_last);
     }
+    if (flag_adc_dma == 1) {
+      flag_adc_dma = 0;
+      // HAL_ADC_Start_DMA(&hadc3, dma_buffer, sizeof(dma_buffer)/sizeof(uint32_t));
+    }
+    remote_2 = 146-adc_pwm1_hight_count;
+    remote_4 = 146-adc_pwm2_hight_count;
+    if (remote_2 < 60 && remote_2 > -60 && (remote_2 > 5 || remote_2 < -5)) {
+      s_chassis.velocity_x = remote_2 * 20;
+      printf("speed1:%d\r\n", s_chassis.velocity_x);
+    }
+    else if (remote_2 == 0){
+      s_chassis.velocity_x = 0;
+    }
+    if (remote_4 < 60 && remote_4 > -60 && (remote_4 > 5 || remote_4 < -5)) {
+      s_chassis.velocity_z = remote_4 * 20;
+      printf("speed2:%d\r\n", s_chassis.velocity_z);
+    }
+    else if (remote_4 == 0){
+      s_chassis.velocity_z = 0;
+    }
+    chassis_control(&s_chassis);
 
     // key = key_scan();
     // if (key == KEY0_PRES)           //按下key0占空比++

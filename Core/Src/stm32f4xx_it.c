@@ -1,35 +1,37 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file    stm32f4xx_it.c
-  * @brief   Interrupt Service Routines.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    stm32f4xx_it.c
+ * @brief   Interrupt Service Routines.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "adc.h"
-#include "main.h"
 #include "stm32f4xx_it.h"
+#include "main.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "pwm_duty_analyzer.h"
-#include "stm32f407xx.h"
-#include "usart.h"
+#include "adc.h"
 #include "bldc.h"
 #include "chassis.h"
+#include "pwm_duty_analyzer.h"
 #include "stdio.h"
+#include "stm32f407xx.h"
+#include "usart.h"
 #include <stdint.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -77,85 +79,74 @@ extern UART_HandleTypeDef huart1;
 /*           Cortex-M4 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
 /**
-  * @brief This function handles Non maskable interrupt.
-  */
-void NMI_Handler(void)
-{
+ * @brief This function handles Non maskable interrupt.
+ */
+void NMI_Handler(void) {
   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-   while (1)
-  {
+  while (1) {
   }
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
 /**
-  * @brief This function handles Hard fault interrupt.
-  */
-void HardFault_Handler(void)
-{
+ * @brief This function handles Hard fault interrupt.
+ */
+void HardFault_Handler(void) {
   /* USER CODE BEGIN HardFault_IRQn 0 */
 
   /* USER CODE END HardFault_IRQn 0 */
-  while (1)
-  {
+  while (1) {
     /* USER CODE BEGIN W1_HardFault_IRQn 0 */
     /* USER CODE END W1_HardFault_IRQn 0 */
   }
 }
 
 /**
-  * @brief This function handles Memory management fault.
-  */
-void MemManage_Handler(void)
-{
+ * @brief This function handles Memory management fault.
+ */
+void MemManage_Handler(void) {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
 
   /* USER CODE END MemoryManagement_IRQn 0 */
-  while (1)
-  {
+  while (1) {
     /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
     /* USER CODE END W1_MemoryManagement_IRQn 0 */
   }
 }
 
 /**
-  * @brief This function handles Pre-fetch fault, memory access fault.
-  */
-void BusFault_Handler(void)
-{
+ * @brief This function handles Pre-fetch fault, memory access fault.
+ */
+void BusFault_Handler(void) {
   /* USER CODE BEGIN BusFault_IRQn 0 */
 
   /* USER CODE END BusFault_IRQn 0 */
-  while (1)
-  {
+  while (1) {
     /* USER CODE BEGIN W1_BusFault_IRQn 0 */
     /* USER CODE END W1_BusFault_IRQn 0 */
   }
 }
 
 /**
-  * @brief This function handles Undefined instruction or illegal state.
-  */
-void UsageFault_Handler(void)
-{
+ * @brief This function handles Undefined instruction or illegal state.
+ */
+void UsageFault_Handler(void) {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
 
   /* USER CODE END UsageFault_IRQn 0 */
-  while (1)
-  {
+  while (1) {
     /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
     /* USER CODE END W1_UsageFault_IRQn 0 */
   }
 }
 
 /**
-  * @brief This function handles System service call via SWI instruction.
-  */
-void SVC_Handler(void)
-{
+ * @brief This function handles System service call via SWI instruction.
+ */
+void SVC_Handler(void) {
   /* USER CODE BEGIN SVCall_IRQn 0 */
 
   /* USER CODE END SVCall_IRQn 0 */
@@ -165,10 +156,9 @@ void SVC_Handler(void)
 }
 
 /**
-  * @brief This function handles Debug monitor.
-  */
-void DebugMon_Handler(void)
-{
+ * @brief This function handles Debug monitor.
+ */
+void DebugMon_Handler(void) {
   /* USER CODE BEGIN DebugMonitor_IRQn 0 */
 
   /* USER CODE END DebugMonitor_IRQn 0 */
@@ -178,10 +168,9 @@ void DebugMon_Handler(void)
 }
 
 /**
-  * @brief This function handles Pendable request for system service.
-  */
-void PendSV_Handler(void)
-{
+ * @brief This function handles Pendable request for system service.
+ */
+void PendSV_Handler(void) {
   /* USER CODE BEGIN PendSV_IRQn 0 */
 
   /* USER CODE END PendSV_IRQn 0 */
@@ -191,10 +180,9 @@ void PendSV_Handler(void)
 }
 
 /**
-  * @brief This function handles System tick timer.
-  */
-void SysTick_Handler(void)
-{
+ * @brief This function handles System tick timer.
+ */
+void SysTick_Handler(void) {
   /* USER CODE BEGIN SysTick_IRQn 0 */
 
   /* USER CODE END SysTick_IRQn 0 */
@@ -212,10 +200,9 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles CAN1 RX0 interrupts.
-  */
-void CAN1_RX0_IRQHandler(void)
-{
+ * @brief This function handles CAN1 RX0 interrupts.
+ */
+void CAN1_RX0_IRQHandler(void) {
   /* USER CODE BEGIN CAN1_RX0_IRQn 0 */
 
   /* USER CODE END CAN1_RX0_IRQn 0 */
@@ -226,10 +213,10 @@ void CAN1_RX0_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles TIM1 update interrupt and TIM10 global interrupt.
-  */
-void TIM1_UP_TIM10_IRQHandler(void)
-{
+ * @brief This function handles TIM1 update interrupt and TIM10 global
+ * interrupt.
+ */
+void TIM1_UP_TIM10_IRQHandler(void) {
   /* USER CODE BEGIN TIM1_UP_TIM10_IRQn 0 */
 
   /* USER CODE END TIM1_UP_TIM10_IRQn 0 */
@@ -240,10 +227,9 @@ void TIM1_UP_TIM10_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles USART1 global interrupt.
-  */
-void USART1_IRQHandler(void)
-{
+ * @brief This function handles USART1 global interrupt.
+ */
+void USART1_IRQHandler(void) {
   /* USER CODE BEGIN USART1_IRQn 0 */
   uint32_t timeout = 0;
   uint32_t maxDelay = 0x1FFFF;
@@ -251,32 +237,27 @@ void USART1_IRQHandler(void)
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
   timeout = 0;
-  while (HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY) 
-  {
+  while (HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY) {
     timeout++;
-    if(timeout > maxDelay) 
-    {
+    if (timeout > maxDelay) {
       break;
     }
   }
   timeout = 0;
-  while (HAL_UART_Receive_IT(&huart1, g_rx_buffer, RXBUFFERSIZE) != HAL_OK) 
-  {
+  while (HAL_UART_Receive_IT(&huart1, g_rx_buffer, RXBUFFERSIZE) != HAL_OK) {
     timeout++;
-    if(timeout > maxDelay) 
-    {
+    if (timeout > maxDelay) {
       break;
     }
-    
   }
   /* USER CODE END USART1_IRQn 1 */
 }
 
 /**
-  * @brief This function handles TIM8 update interrupt and TIM13 global interrupt.
-  */
-void TIM8_UP_TIM13_IRQHandler(void)
-{
+ * @brief This function handles TIM8 update interrupt and TIM13 global
+ * interrupt.
+ */
+void TIM8_UP_TIM13_IRQHandler(void) {
   /* USER CODE BEGIN TIM8_UP_TIM13_IRQn 0 */
 
   /* USER CODE END TIM8_UP_TIM13_IRQn 0 */
@@ -287,10 +268,10 @@ void TIM8_UP_TIM13_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles TIM6 global interrupt, DAC1 and DAC2 underrun error interrupts.
-  */
-void TIM6_DAC_IRQHandler(void)
-{
+ * @brief This function handles TIM6 global interrupt, DAC1 and DAC2 underrun
+ * error interrupts.
+ */
+void TIM6_DAC_IRQHandler(void) {
   /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
 
   /* USER CODE END TIM6_DAC_IRQn 0 */
@@ -301,12 +282,11 @@ void TIM6_DAC_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles DMA2 stream0 global interrupt.
-  */
-void DMA2_Stream0_IRQHandler(void)
-{
+ * @brief This function handles DMA2 stream0 global interrupt.
+ */
+void DMA2_Stream0_IRQHandler(void) {
   /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
-  
+
   /* USER CODE END DMA2_Stream0_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_adc3);
   /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
@@ -390,14 +370,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     // 电机换向控制
     if (g_bldc_motor1.pwm_duty == 0 && g_bldc_motor1.pwm_duty_target == 0) {
       HAL_GPIO_WritePin(BRAKE1_GPIO_Port, BRAKE1_Pin, GPIO_PIN_SET);
-    }
-    else {
+    } else {
       HAL_GPIO_WritePin(BRAKE1_GPIO_Port, BRAKE1_Pin, GPIO_PIN_RESET);
     }
     if (g_bldc_motor2.pwm_duty == 0 && g_bldc_motor2.pwm_duty_target == 0) {
       HAL_GPIO_WritePin(BRAKE2_GPIO_Port, BRAKE2_Pin, GPIO_PIN_SET);
-    }
-    else {
+    } else {
       HAL_GPIO_WritePin(BRAKE2_GPIO_Port, BRAKE2_Pin, GPIO_PIN_RESET);
     }
     if (g_bldc_motor1.dir != g_bldc_motor1.dir_set) {
@@ -462,22 +440,39 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (HAL_GPIO_ReadPin(REMOTE_CH4_GPIO_Port, REMOTE_CH4_Pin) ==
         GPIO_PIN_RESET) {
       s_chassis.remote_count_ch4++;
-      
     }
     // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
   }
 }
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
-{
-  static uint32_t count = 0;
-  if (hadc->Instance == ADC3 && flag_adc_dma == 0) {
-    adc_buffer1[count] = dma_buffer[0];
-    adc_buffer2[count++] = dma_buffer[1];
-    if (count >= PWM_ADC_BUFFER_SIZE) {
-      flag_adc_dma = 1;
-      count = 0;
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+  // static uint32_t count = 0;
+  static uint32_t count1 = 0;
+  static uint32_t count2 = 0;
+  if (hadc->Instance == ADC3) {
+    // adc_buffer1[count] = dma_buffer[0] & 0xff;
+    // adc_buffer2[count++] = dma_buffer[1] & 0xff;
+    if (dma_buffer[0] > 250) {
+      count1++;
+    } else if (count1 != 0) {
+      // flag_adc_dma = 1;
+      adc_pwm1_hight_count = count1;
+      count1 = 0;
     }
+
+    if (dma_buffer[1] > 250) {
+      count2++;
+    } else if (count2 != 0) {
+      // flag_adc_dma = 1;
+      adc_pwm2_hight_count = count2;
+      count2 = 0;
+    }
+    // if (count >= PWM_ADC_BUFFER_SIZE) {
+    //   count = 0;
+    // } else {
+    HAL_ADC_Start_DMA(&hadc3, dma_buffer,
+                      sizeof(dma_buffer) / sizeof(uint32_t));
+    // }
   }
 }
 
