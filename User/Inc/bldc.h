@@ -8,8 +8,8 @@
 #include "main.h"
 #include <stdint.h>
 
-#define DUTY_STEP_UP                1
-#define DUTY_STEP_DOWN              1
+#define DUTY_STEP_UP                2
+#define DUTY_STEP_DOWN              2
 
 #define MOTOR_1                     1
 #define MOTOR_2                     2
@@ -22,7 +22,6 @@
 
 typedef struct
 {
-    __IO uint16_t valid_data_num;            /* CAN数据有效次数*/  //后续移动到底盘变量中
     __IO uint8_t run_flag;                  /* 运行标志 */
     __IO uint8_t locket_rotor;              /* 堵转标记 */
     __IO uint8_t step_sta;                  /* 本次霍尔状态 */

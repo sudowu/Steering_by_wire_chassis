@@ -17,9 +17,15 @@ typedef struct {
   __IO int32_t velocity_z;
   __IO uint32_t remote_count_ch2;
   __IO uint32_t remote_count_ch4;
-
+  __IO uint16_t valid_can_num;
+  __IO uint16_t valid_remote_num;
 } chassis_obj;
 
+typedef enum{
+  can_signal = 0,
+  remote_signal
+}signal_source;
+
 extern chassis_obj s_chassis;
-void chassis_control(chassis_obj *chassis);
+void chassis_control(chassis_obj *chassis, signal_source signal_type);
 #endif

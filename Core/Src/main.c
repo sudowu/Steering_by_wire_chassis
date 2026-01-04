@@ -79,6 +79,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
   int32_t remote_2 = 0, remote_4 = 0; 
+  uint32_t remote_zero = 0;
   uint8_t t = 0;
   int16_t pwm_duty_temp = 0;
   int16_t pwm_duty_last = 0;
@@ -114,7 +115,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   bldc_ctrl(MOTOR_1, CCW, 0);
   bldc_ctrl(MOTOR_2, CCW, 0);
-
+  
+  
   // printf("按下KEY0 开始正转加速\r\n");
   // printf("按下KEY1 开始反转加速\r\n");
   // printf("按下KEY2 停止电机\r\n");
@@ -142,23 +144,26 @@ int main(void)
       flag_adc_dma = 0;
       // HAL_ADC_Start_DMA(&hadc3, dma_buffer, sizeof(dma_buffer)/sizeof(uint32_t));
     }
-    remote_2 = 146-adc_pwm1_hight_count;
-    remote_4 = 146-adc_pwm2_hight_count;
+    if (remote_zero == 0 && adc_pwm1_hight_count > 140&& adc_pwm1_hight_count < 150) {
+      remote_zero = adc_pwm1_hight_count ;
+    }
+    remote_2 = remote_zero-adc_pwm1_hight_count;
+    remote_4 = remote_zero-adc_pwm2_hight_count;
     if (remote_2 < 60 && remote_2 > -60 && (remote_2 > 5 || remote_2 < -5)) {
       s_chassis.velocity_x = remote_2 * 20;
       printf("speed1:%d\r\n", s_chassis.velocity_x);
     }
-    else if (remote_2 == 0){
+    else if (remote_2 < 5 && remote_2 > -5){
       s_chassis.velocity_x = 0;
     }
     if (remote_4 < 60 && remote_4 > -60 && (remote_4 > 5 || remote_4 < -5)) {
       s_chassis.velocity_z = remote_4 * 20;
       printf("speed2:%d\r\n", s_chassis.velocity_z);
     }
-    else if (remote_4 == 0){
+    else if (remote_4 < 5 && remote_4 > -5){
       s_chassis.velocity_z = 0;
     }
-    chassis_control(&s_chassis);
+    chassis_control(&s_chassis, remote_signal); 
 
     // key = key_scan();
     // if (key == KEY0_PRES)           //按下key0占空比++

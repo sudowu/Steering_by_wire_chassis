@@ -7,23 +7,27 @@
 #include <stdint.h>
 
 
-chassis_obj s_chassis = {&g_bldc_motor1, &g_bldc_motor2, 0, 0, 0, 0, 0};
+chassis_obj s_chassis = {&g_bldc_motor1, &g_bldc_motor2, 0, 0, 0, 0, 0, 0, 0};
+ 
 
-
-void chassis_control(chassis_obj *chassis) {
-  int32_t duty1 = chassis->velocity_x;
-  int32_t duty2 = chassis->velocity_x - chassis->velocity_z;
-  // if (chassis->velocity_z < 0) {
-  
+void chassis_control(chassis_obj *chassis , signal_source signal_type) {
+  if (chassis->valid_can_num != 0 && signal_type != can_signal) {
+    return;
+  }
+  int32_t duty1 = chassis->velocity_x + (chassis->velocity_z / 2);
+  int32_t duty2 = chassis->velocity_x - (chassis->velocity_z / 2);
+  // if (chassis->velocity_z > 0) {
+    // duty1 = chassis->velocity_x + (chassis->velocity_z / 2);
+    // duty2 = chassis->velocity_x - (chassis->velocity_z / 2);
   // }
   if (duty1 >= 0) {
     chassis->bldc1->pwm_duty_target = duty1;
     chassis->bldc1->dir_set = CCW;
-    duty2 = chassis->velocity_x - chassis->velocity_z;
+    // duty2 = chassis->velocity_x - chassis->velocity_z;
   } else {
     chassis->bldc1->pwm_duty_target = -duty1;
     chassis->bldc1->dir_set = CW;
-    duty2 = chassis->velocity_x + chassis->velocity_z;
+    // duty2 = chassis->velocity_x + chassis->velocity_z;
   }
   if (duty2 >= 0) {
     chassis->bldc2->pwm_duty_target = duty2;
@@ -32,8 +36,12 @@ void chassis_control(chassis_obj *chassis) {
     chassis->bldc2->pwm_duty_target = -duty2;
     chassis->bldc2->dir_set = CCW;
   }
-  chassis->bldc1->valid_data_num = 1000;
-  chassis->bldc2->valid_data_num = 1000;
+  if (signal_type == can_signal) {
+    chassis->valid_can_num= 1000;
+  }
+  else if (signal_type == remote_signal) {
+    chassis->valid_remote_num = 10;
+  }
 
   g_bldc_motor1.run_flag = RUN;
   g_bldc_motor2.run_flag = RUN;
@@ -58,7 +66,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
       if (s_chassis.velocity_z > 32767) {
         s_chassis.velocity_z = s_chassis.velocity_z - 65536;
       }
-      chassis_control(&s_chassis);
+      chassis_control(&s_chassis, can_signal);
       printf("pwm:%d\r\n", s_chassis.velocity_x);
     }
   }

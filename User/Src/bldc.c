@@ -13,9 +13,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-bldc_obj g_bldc_motor1 = {0, STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
+bldc_obj g_bldc_motor1 = {STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
                           0, 0,    0, 0, 0,   0, 0, 0, 0}; /* 电机结构体 */
-bldc_obj g_bldc_motor2 = {0, STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
+bldc_obj g_bldc_motor2 = {STOP, 0, 0, CCW, 0, 0, 0, 0, 0,
                           0, 0,    0, 0, 0,   0, 0, 0, 0}; /* 电机结构体 */
 
 const uint8_t hall_table_cw[6] = {6, 2, 3, 1, 5, 4};  /* 顺时针旋转表 */
