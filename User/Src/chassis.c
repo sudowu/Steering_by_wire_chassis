@@ -40,7 +40,7 @@ void chassis_control(chassis_obj *chassis , signal_source signal_type) {
     chassis->valid_can_num= 1000;
   }
   else if (signal_type == remote_signal) {
-    chassis->valid_remote_num = 10;
+    chassis->valid_remote_num = 100;
   }
 
   g_bldc_motor1.run_flag = RUN;

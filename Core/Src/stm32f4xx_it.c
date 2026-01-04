@@ -386,12 +386,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (g_bldc_motor1.pwm_duty == 0 && g_bldc_motor1.pwm_duty_target == 0) {
       HAL_GPIO_WritePin(BRAKE1_GPIO_Port, BRAKE1_Pin, GPIO_PIN_SET);
     } else {
-      HAL_GPIO_WritePin(BRAKE1_GPIO_Port, BRAKE1_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(BRAKE1_GPIO_Port, BRAKE1_Pin, GPIO_PIN_RESET);//解除刹车
     }
     if (g_bldc_motor2.pwm_duty == 0 && g_bldc_motor2.pwm_duty_target == 0) {
       HAL_GPIO_WritePin(BRAKE2_GPIO_Port, BRAKE2_Pin, GPIO_PIN_SET);
     } else {
-      HAL_GPIO_WritePin(BRAKE2_GPIO_Port, BRAKE2_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(BRAKE2_GPIO_Port, BRAKE2_Pin, GPIO_PIN_RESET);//解除刹车
     }
     if (g_bldc_motor1.dir != g_bldc_motor1.dir_set) {
       if (g_bldc_motor1.pwm_duty == 0) {
@@ -413,7 +413,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
       g_bldc_motor2.pwm_duty_target = 0;
     } else if (s_chassis.valid_can_num > 0) {
       s_chassis.valid_can_num--;
-    } else if (s_chassis.valid_remote_num > 0) {
+    }else if (s_chassis.valid_remote_num > 0) {
       s_chassis.valid_remote_num--;
     }
 
@@ -438,27 +438,28 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     } else if (g_bldc_motor2.pwm_duty_target < g_bldc_motor2.pwm_duty) {
       g_bldc_motor2.pwm_duty -= DUTY_STEP_DOWN;
     }
-    // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
-  } else if (htim->Instance == TIM7) {
-    uint32_t ch2 = 0, ch4 = 0;
-    ch2 = s_chassis.remote_count_ch2;
-    ch4 = s_chassis.remote_count_ch4;
-    s_chassis.remote_count_ch2 = 0;
-    s_chassis.remote_count_ch4 = 0;
-    printf("ch2:%ld\r\n", ch2);
-    printf("ch4:%ld\r\n", ch4);
-    // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
-  } else if (htim->Instance == TIM3) {
-    if (HAL_GPIO_ReadPin(REMOTE_CH2_GPIO_Port, REMOTE_CH2_Pin) ==
-        GPIO_PIN_RESET) {
-      s_chassis.remote_count_ch2++;
-    }
-    if (HAL_GPIO_ReadPin(REMOTE_CH4_GPIO_Port, REMOTE_CH4_Pin) ==
-        GPIO_PIN_RESET) {
-      s_chassis.remote_count_ch4++;
-    }
-    // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
   }
+    // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
+  // } else if (htim->Instance == TIM7) {
+  //   uint32_t ch2 = 0, ch4 = 0;
+  //   ch2 = s_chassis.remote_count_ch2;
+  //   ch4 = s_chassis.remote_count_ch4;
+  //   s_chassis.remote_count_ch2 = 0;
+  //   s_chassis.remote_count_ch4 = 0;
+  //   printf("ch2:%ld\r\n", ch2);
+  //   printf("ch4:%ld\r\n", ch4);
+  //   // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
+  // } else if (htim->Instance == TIM3) {
+  //   if (HAL_GPIO_ReadPin(REMOTE_CH2_GPIO_Port, REMOTE_CH2_Pin) ==
+  //       GPIO_PIN_RESET) {
+  //     s_chassis.remote_count_ch2++;
+  //   }
+  //   if (HAL_GPIO_ReadPin(REMOTE_CH4_GPIO_Port, REMOTE_CH4_Pin) ==
+  //       GPIO_PIN_RESET) {
+  //     s_chassis.remote_count_ch4++;
+  //   }
+  //   // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
+  // }
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {

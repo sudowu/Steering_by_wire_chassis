@@ -149,6 +149,8 @@ int main(void)
     }
     remote_2 = remote_zero-adc_pwm1_hight_count;
     remote_4 = remote_zero-adc_pwm2_hight_count;
+    // remote_2 = 0;
+    // remote_4 = 0;
     if (remote_2 < 60 && remote_2 > -60 && (remote_2 > 5 || remote_2 < -5)) {
       s_chassis.velocity_x = remote_2 * 20;
       printf("speed1:%d\r\n", s_chassis.velocity_x);
