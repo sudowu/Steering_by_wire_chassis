@@ -152,14 +152,14 @@ int main(void)
     // remote_2 = 0;
     // remote_4 = 0;
     if (remote_2 < 60 && remote_2 > -60 && (remote_2 > 5 || remote_2 < -5)) {
-      s_chassis.velocity_x = remote_2 * 30;
+      s_chassis.velocity_x = remote_2 * 25;
       printf("speed1:%d\r\n", s_chassis.velocity_x);
     }
     else if (remote_2 < 5 && remote_2 > -5){
       s_chassis.velocity_x = 0;
     }
     if (remote_4 < 60 && remote_4 > -60 && (remote_4 > 5 || remote_4 < -5)) {
-      s_chassis.velocity_z = remote_4 * 30;
+      s_chassis.velocity_z = remote_4 * 25;
       printf("speed2:%d\r\n", s_chassis.velocity_z);
     }
     else if (remote_4 < 5 && remote_4 > -5){
