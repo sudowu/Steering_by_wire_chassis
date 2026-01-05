@@ -67,7 +67,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
         s_chassis.velocity_z = s_chassis.velocity_z - 65536;
       }
       chassis_control(&s_chassis, can_signal);
-      printf("pwm:%d\r\n", s_chassis.velocity_x);
+      printf("pwm:%ld\r\n", s_chassis.velocity_x);
     }
   }
 }
