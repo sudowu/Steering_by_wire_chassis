@@ -14,8 +14,8 @@ void chassis_control(chassis_obj *chassis , signal_source signal_type) {
   if (chassis->valid_can_num != 0 && signal_type != can_signal) {
     return;
   }
-  int32_t duty1 = chassis->velocity_x + (chassis->velocity_z / 2);
-  int32_t duty2 = chassis->velocity_x - (chassis->velocity_z / 2);
+  int32_t duty1 = chassis->velocity_x + (chassis->velocity_z );
+  int32_t duty2 = chassis->velocity_x - (chassis->velocity_z );
   // if (chassis->velocity_z > 0) {
     // duty1 = chassis->velocity_x + (chassis->velocity_z / 2);
     // duty2 = chassis->velocity_x - (chassis->velocity_z / 2);

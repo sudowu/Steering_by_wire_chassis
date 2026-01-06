@@ -18,46 +18,5 @@
                 }
             ]
         },
-        {
-            "type": "stgdbtarget",
-            "request": "launch",
-            "name": "STM32Cube: STM32 Launch CMSIS-DAP OpenOCD",
-            "origin": "snippet",
-            "cwd": "${workspaceFolder}",
-            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
-            "program": "${command:st-stm32-ide-debug-launch.get-projects-binary-from-context1}",
-            "gdb": "${command:st-stm32-ide-debug-launch.get-gdb-executable}",
-            "serverExe": "openocd",
-            "serverParameters": [
-                "-f",
-                "interface/cmsis-dap.cfg",
-                "-f",
-                "target/stm32f4x.cfg"
-            ],
-            "serverHost": "localhost",
-            "serverPort": "3333",
-            "serverCwd": "${workspaceFolder}",
-            "runEntry": "main",
-            "imagesAndSymbols": [
-                {
-                    "imageFileName": "${command:st-stm32-ide-debug-launch.get-projects-binary-from-context1}"
-                }
-            ],
-            "verbose": true
-        },
-        {
-            "name": "chassis",
-            "type": "stlinkgdbtarget",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
-            "runEntry": "main",
-            "imagesAndSymbols": [
-                {
-                    "imageFileName": "${workspaceFolder}/build/Debug/BLDC.elf"
-                }
-            ],
-            "verbose": false
-        }
     ]
 }

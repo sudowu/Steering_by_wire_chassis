@@ -8,8 +8,8 @@
 #include "main.h"
 #include <stdint.h>
 
-#define DUTY_STEP_UP                2
-#define DUTY_STEP_DOWN              2
+#define DUTY_STEP_UP                1
+#define DUTY_STEP_DOWN              1
 
 #define MOTOR_1                     1
 #define MOTOR_2                     2

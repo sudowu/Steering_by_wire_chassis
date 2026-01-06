@@ -78,7 +78,7 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
-  int32_t remote_2 = 0, remote_4 = 0; 
+    int32_t remote_2 = 0, remote_4 = 0; 
   uint32_t remote_zero = 0;
   uint8_t t = 0;
   int16_t pwm_duty_temp = 0;
