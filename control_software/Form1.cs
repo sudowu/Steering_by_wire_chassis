@@ -18,7 +18,7 @@ namespace control_software
         controlcan controlcan = new controlcan();
 
         static UInt32 m_devtype = 4;//USBCAN2
-
+        
         UInt32 m_bOpen = 0;         // 设备打开标志：0-未打开，1-已打开
         UInt32 m_devind = 0;        // 设备索引
         UInt32 m_canind = 0;        // CAN通道索引
@@ -29,6 +29,7 @@ namespace control_software
 
         VCI_INIT_CONFIG config = new VCI_INIT_CONFIG();
         VCI_CAN_OBJ sendobj = new VCI_CAN_OBJ();
+        CHASSIS_INFO cHASSIS_INFO = new CHASSIS_INFO();
         public Form1()
         {
             InitializeComponent();
@@ -38,12 +39,14 @@ namespace control_software
         {
             Int32 curindex = 0;
 ;
-
+            cHASSIS_INFO.Max_Power = 0x0600;
+            cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_IDLE;
+            //textBoxPower.Text = cHASSIS_INFO.Power.ToString();
 
             m_devind = 0;        // 设备索引
             m_canind = 0;        // CAN通道索引
             m_devtype = 4;
-
+            
             config.AccCode = 0;
             config.AccMask = 0xffffffff;
             config.Timing0 = 0;
@@ -181,6 +184,55 @@ namespace control_software
                 this.listView_Info.Items.Add(lvi);
                 this.listView_Info.EndUpdate();  //结束数据处理，UI界面一次性绘制。
             }
+            if (m_bOpen == 0 || cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_IDLE)
+                return;
+            
+            VCI_CAN_OBJ sendobj = new VCI_CAN_OBJ();
+            //sendobj.Init();
+            sendobj.RemoteFlag = 0;
+            sendobj.ExternFlag = 0;
+            sendobj.ID = 0x08;
+            sendobj.DataLen = 8;
+            UInt16 speed = (UInt16)(cHASSIS_INFO.Max_Power / 100 * trackBar_Power.Value);
+
+            lvi.Text = "0x08";
+            lvi.ImageIndex = 0;
+            lvi.SubItems.Add( "标准帧");
+            lvi.SubItems.Add("数据帧");
+            
+
+
+            if (cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_RETREAT)
+                speed = (UInt16)(0 - speed);
+
+
+            sendobj.Data[0] = System.Convert.ToByte(speed & 0x00ff);
+
+            sendobj.Data[1] = System.Convert.ToByte((speed & 0xff00) >> 8);
+
+            sendobj.Data[2] = 0;
+
+            sendobj.Data[3] = 0;
+
+            sendobj.Data[4] = 0;
+
+            sendobj.Data[5] = 0;
+
+            sendobj.Data[6] = 0;
+
+            sendobj.Data[7] = 0;
+            String strdata = sendobj.Data[0].ToString("X2") +" "+ sendobj.Data[1].ToString("X2")
+                + " 00 00 00 00 00 00";
+            lvi.SubItems.Add(strdata);
+            listView_Info.BeginUpdate();
+            listView_Info.Items.Add(lvi);
+            listView_Info.EndUpdate();
+
+            if (controlcan.VCI_Transmit(m_devtype, m_devind, m_canind, ref sendobj, 1) == 0)
+            {
+                MessageBox.Show("发送失败", "错误",
+                        MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
             //Marshal.FreeHGlobal(ptArray[0]);
             //Marshal.FreeHGlobal(pt);
         }
@@ -252,6 +304,33 @@ namespace control_software
                         MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
             
+        }
+
+        private void button_advance_Click(object sender, EventArgs e)
+        {
+            if (m_bOpen == 0)
+                return;
+            cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_RUNNING;
+            button_advance.BackColor = System.Drawing.Color.SpringGreen;
+            button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+        }
+
+        private void button_Retreat_Click(object sender, EventArgs e)
+        {
+            if (m_bOpen == 0)
+                return;
+            cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_RETREAT;
+            button_Retreat.BackColor = System.Drawing.Color.SpringGreen;
+            button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+        }
+
+        private void button_Stop_Click(object sender, EventArgs e)
+        {
+            if (m_bOpen == 0)
+                return;
+            cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_IDLE;
+            button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
         }
     }
 }
