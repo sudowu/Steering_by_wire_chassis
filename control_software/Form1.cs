@@ -17,12 +17,14 @@ namespace control_software
     {
         controlcan controlcan = new controlcan();
 
+        
+
         static UInt32 m_devtype = 4;//USBCAN2
         
         UInt32 m_bOpen = 0;         // 设备打开标志：0-未打开，1-已打开
         UInt32 m_devind = 0;        // 设备索引
         UInt32 m_canind = 0;        // CAN通道索引
-
+        UInt32 m_start = 0;
         VCI_CAN_OBJ[] m_recobj = new VCI_CAN_OBJ[1000];
 
         UInt32[] m_arrdevtype = new UInt32[20];
@@ -46,6 +48,7 @@ namespace control_software
             m_devind = 0;        // 设备索引
             m_canind = 0;        // CAN通道索引
             m_devtype = 4;
+            m_start = 0;
             
             config.AccCode = 0;
             config.AccMask = 0xffffffff;
@@ -183,8 +186,10 @@ namespace control_software
                 lvi.SubItems.Add(str);
                 this.listView_Info.Items.Add(lvi);
                 this.listView_Info.EndUpdate();  //结束数据处理，UI界面一次性绘制。
+                if(listView_Info.Items.Count > 0)
+                    listView_Info.EnsureVisible(listView_Info.Items.Count - 1);
             }
-            if (m_bOpen == 0 || cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_IDLE)
+            if ((m_bOpen == 0 || cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_IDLE) || m_start == 0 )
                 return;
             
             VCI_CAN_OBJ sendobj = new VCI_CAN_OBJ();
@@ -194,18 +199,21 @@ namespace control_software
             sendobj.ID = 0x08;
             sendobj.DataLen = 8;
             UInt16 speed = (UInt16)(cHASSIS_INFO.Max_Power / 100 * trackBar_Power.Value);
-
-            lvi.Text = "0x08";
-            lvi.ImageIndex = 0;
-            lvi.SubItems.Add( "标准帧");
-            lvi.SubItems.Add("数据帧");
+            ListViewItem lvi2 = new ListViewItem();
+            lvi2.Text = "0x08";
+            lvi2.ImageIndex = 0;
+            lvi2.SubItems.Add( "标准帧");
+            lvi2.SubItems.Add("数据帧");
             
-
 
             if (cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_RETREAT)
                 speed = (UInt16)(0 - speed);
-
-
+            if (cHASSIS_INFO.stop_flag == 1)
+            {
+                speed = 0;
+                cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_IDLE;
+                cHASSIS_INFO.stop_flag = 0;
+            }
             sendobj.Data[0] = System.Convert.ToByte(speed & 0x00ff);
 
             sendobj.Data[1] = System.Convert.ToByte((speed & 0xff00) >> 8);
@@ -223,11 +231,11 @@ namespace control_software
             sendobj.Data[7] = 0;
             String strdata = sendobj.Data[0].ToString("X2") +" "+ sendobj.Data[1].ToString("X2")
                 + " 00 00 00 00 00 00";
-            lvi.SubItems.Add(strdata);
+            lvi2.SubItems.Add(strdata);
             listView_Info.BeginUpdate();
-            listView_Info.Items.Add(lvi);
+            listView_Info.Items.Add(lvi2);
             listView_Info.EndUpdate();
-
+            listView_Info.EnsureVisible(listView_Info.Items.Count - 1);
             if (controlcan.VCI_Transmit(m_devtype, m_devind, m_canind, ref sendobj, 1) == 0)
             {
                 MessageBox.Show("发送失败", "错误",
@@ -242,6 +250,7 @@ namespace control_software
             if (m_bOpen == 0)
                 return;
             controlcan.VCI_StartCAN(m_devtype, m_devind, m_canind);
+            m_start = 1;
         }
 
         private void button_StopCAN_Click(object sender, EventArgs e)
@@ -249,6 +258,7 @@ namespace control_software
             if (m_bOpen == 0)
                 return;
             controlcan.VCI_ResetCAN(m_devtype, m_devind, m_canind);
+            m_start = 0;
         }
 
         private void button_Clear_Click(object sender, EventArgs e)
@@ -328,7 +338,8 @@ namespace control_software
         {
             if (m_bOpen == 0)
                 return;
-            cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_IDLE;
+            cHASSIS_INFO.stop_flag = 1;
+            //cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_IDLE;
             button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
             button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
         }
