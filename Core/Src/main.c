@@ -73,36 +73,53 @@ void SystemClock_Config(void);
   * @brief  The application entry point.
   * @retval int
   */
+/**
+ * @brief  主函数
+ * @param  None
+ * @retval int
+ * 
+ * @details
+ * 主函数实现了整个系统的控制逻辑，包括：
+ * 1. 系统初始化（MCU、时钟、外设）
+ * 2. 电机初始化（设置初始状态）
+ * 3. 主控制循环（遥控信号处理、底盘控制、状态监控）
+ * 
+ * 主循环功能：
+ * - LED闪烁指示（每200ms）
+ * - CAN通信（发送心跳包）
+ * - 遥控信号解析（处理通道2和4）
+ * - 底盘运动控制（差速驱动算法）
+ */
 int main(void)
 {
     /* USER CODE BEGIN 1 */
 
-    int32_t remote_2 = 0, remote_4 = 0;
-    uint32_t remote_zero = 0;
-    uint8_t t = 0;
-    int16_t pwm_duty_temp = 0;
-    int16_t pwm_duty_last = 0;
-    uint8_t data[8] = {1, 2, 3, 4, 5, 6, 7, 8};
-
+    int32_t remote_2 = 0, remote_4 = 0;      /* 遥控器通道2和通道4的偏差值 */
+    uint32_t remote_zero = 0;                /* 遥控器零点基准值 */
+    uint8_t t = 0;                           /* 计时计数器，用于LED闪烁和CAN通信定时 */
+    int16_t pwm_duty_temp = 0;               /* 临时PWM占空比值 */
+    int16_t pwm_duty_last = 0;               /* 上次PWM占空比值，用于检测变化 */
+    uint8_t data[8] = {1, 2, 3, 4, 5, 6, 7, 8}; /* CAN通信测试数据 */
+    uint8_t remote_zero_count = 10;          /* 遥控器零点校准计数器 */
     /* USER CODE END 1 */
 
     /* MCU Configuration--------------------------------------------------------*/
 
-    /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+    /* 重置所有外设，初始化Flash接口和SysTick */
     HAL_Init();
 
     /* USER CODE BEGIN Init */
 
     /* USER CODE END Init */
 
-    /* Configure the system clock */
+    /* 配置系统时钟 */
     SystemClock_Config();
 
     /* USER CODE BEGIN SysInit */
 
     /* USER CODE END SysInit */
 
-    /* Initialize all configured peripherals */
+    /* 初始化所有配置的外设 */
     MX_GPIO_Init();
     MX_DMA_Init();
     MX_TIM1_Init();
@@ -112,126 +129,80 @@ int main(void)
     MX_TIM6_Init();
     MX_ADC3_Init();
     /* USER CODE BEGIN 2 */
+    // 初始化两个电机，设置方向为逆时针(CCW)，占空比为0，即停止状态
     bldc_ctrl(MOTOR_1, CCW, 0);
     bldc_ctrl(MOTOR_2, CCW, 0);
 
-
-    // printf("按下KEY0 开始正转加速\r\n");
-    // printf("按下KEY1 开始反转加速\r\n");
-    // printf("按下KEY2 停止电机\r\n");
-
-    /* USER CODE END 2 */
-
-    /* Infinite loop */
-    /* USER CODE BEGIN WHILE */
-    // while (adc_pwm1_hight_count != 143);
-    // while (adc_pwm2_hight_count != 143);
+    /* 主控制循环 */
     while (1)
     {
+        // 计数器递增，用于计时控制
         t++;
+        // 每20个循环周期（200ms）执行一次LED闪烁和CAN通信
         if (t == 20)
         {
-            LED0_TOGGLE();
-            CAN_Send_HAL(0x01, data, 8);
-            t = 0;
-            // printf("remote ch2：%d ch4：%d\r\n", adc_pwm2_hight_count,adc_pwm1_hight_count);
+            LED0_TOGGLE();                    // 翻转LED0的状态（闪烁指示系统运行）
+            CAN_Send_HAL(0x01, data, 8);      // 通过CAN总线发送ID为0x01的心跳包，包含8字节数据
+            t = 0;                            // 重置计数器
         }
+        // 检测PWM占空比是否有变化，如有变化则输出当前PWM值到串口
         if (pwm_duty_last != pwm_duty_temp)
         {
-            pwm_duty_last = pwm_duty_temp;
-            printf("pwm:%d\r\n", pwm_duty_last);
+            pwm_duty_last = pwm_duty_temp;      // 更新上次的PWM占空比值
+            printf("pwm:%d\r\n", pwm_duty_last); // 串口打印当前PWM值，用于调试
         }
+        // 如果ADC DMA转换完成标志被置位，则清除该标志
         if (flag_adc_dma == 1)
         {
-            flag_adc_dma = 0;
-            // HAL_ADC_Start_DMA(&hadc3, dma_buffer, sizeof(dma_buffer)/sizeof(uint32_t));
+            flag_adc_dma = 0;                   // 清除ADC DMA转换完成标志
         }
-        if (remote_zero == 0 && adc_pwm1_hight_count > 140 && adc_pwm1_hight_count < 160)
+        // 校准遥控器零点：当remote_zero为0且adc_pwm1_hight_count在140-170范围内且remote_zero_count为0时
+        if (remote_zero == 0 && adc_pwm1_hight_count > 140 &&
+            adc_pwm1_hight_count < 170 && remote_zero_count == 0)
         {
-            remote_zero = adc_pwm1_hight_count;
+            // 进行10次采样取平均值作为遥控器中位点
+            if (remote_zero_count == 10)
+            {
+                remote_zero = adc_pwm1_hight_count; // 第一次记录当前ADC值作为基准
+            }
+            else
+            {
+                remote_zero = (adc_pwm1_hight_count + remote_zero) / 2; // 后续取平均值优化精度
+            }
+            remote_zero_count--; // 减少计数，进行下一次校准采样
         }
-        remote_2 = remote_zero - adc_pwm1_hight_count;
-        remote_4 = remote_zero - adc_pwm2_hight_count;
-        // remote_2 = 0;
-        // remote_4 = 0;
+        // 计算遥控器通道2和通道4的偏差值（相对于零点）
+        remote_2 = remote_zero - adc_pwm1_hight_count; // 通道2偏差，通常对应前进/后退
+        remote_4 = remote_zero - adc_pwm2_hight_count; // 通道4偏差，通常对应左转/右转
+        // 处理通道2的输入：计算X轴速度分量（前进/后退速度）
         if (remote_2 < 60 && remote_2 > -60 && (remote_2 > 5 || remote_2 < -5))
         {
-            s_chassis.velocity_x = remote_2 * 25;
-            printf("speed1:%d\r\n", s_chassis.velocity_x);
+            // 当偏差在合理范围内且不接近零点时，设置X轴速度（放大25倍）
+            s_chassis.velocity_x = remote_2 * 25;  // 设置底盘X轴速度（前进/后退）
+            printf("speed1:%d\r\n", s_chassis.velocity_x); // 输出X轴速度，用于调试
         }
         else if (remote_2 < 5 && remote_2 > -5)
         {
+            // 当偏差非常小时，将X轴速度设为0（消除抖动和噪声）
             s_chassis.velocity_x = 0;
         }
+        // 处理通道4的输入：计算Z轴速度分量（转向速度）
         if (remote_4 < 60 && remote_4 > -60 && (remote_4 > 5 || remote_4 < -5))
         {
-            s_chassis.velocity_z = remote_4 * 25;
-            printf("speed2:%d\r\n", s_chassis.velocity_z);
+            // 当偏差在合理范围内且不接近零点时，设置Z轴速度（放大25倍）
+            s_chassis.velocity_z = remote_4 * 25;  // 设置底盘Z轴速度（转向）
+            printf("speed2:%d\r\n", s_chassis.velocity_z); // 输出Z轴速度，用于调试
         }
         else if (remote_4 < 5 && remote_4 > -5)
         {
+            // 当偏差非常小时，将Z轴速度设为0（消除抖动和噪声）
             s_chassis.velocity_z = 0;
         }
-        chassis_control(&s_chassis, remote_signal);
+        // 根据计算出的速度分量执行底盘运动控制
+        chassis_control(&s_chassis, remote_signal);  // 执行底盘差速驱动控制算法
 
-        // key = key_scan();
-        // if (key == KEY0_PRES)           //按下key0占空比++
-        // {
-        //   pwm_duty_temp += 500;
-        //   if (pwm_duty_temp > MAX_PWM_DUTY/2)
-        //     pwm_duty_temp = pwm_duty_last;
-        //   if (pwm_duty_temp > 0) {
-        //     g_bldc_motor1.pwm_duty_target = pwm_duty_temp;
-        //     g_bldc_motor1.dir_set = CW;
-        //     g_bldc_motor2.pwm_duty_target = pwm_duty_temp;
-        //     g_bldc_motor2.dir_set = CW;
-        //   }
-        //   else {
-        //     g_bldc_motor1.pwm_duty_target = -pwm_duty_temp;
-        //     g_bldc_motor1.dir_set = CCW;
-        //     g_bldc_motor2.pwm_duty_target = -pwm_duty_temp;
-        //     g_bldc_motor2.dir_set = CCW;
-        //   }
-        //   g_bldc_motor1.run_flag = RUN;
-        //   g_bldc_motor2.run_flag = RUN;
-        //   start_motor1();
-        //   start_motor2();
-        // }
-        // else if (key == KEY1_PRES)      //按下key1占空比--
-        // {
-        //   pwm_duty_temp -= 500;
-        //   if (pwm_duty_temp < -(MAX_PWM_DUTY/2))
-        //     pwm_duty_temp = pwm_duty_last;
-        //   if (pwm_duty_temp > 0) {
-        //     g_bldc_motor1.pwm_duty_target = pwm_duty_temp;
-        //     g_bldc_motor1.dir_set = CW;
-        //     g_bldc_motor2.pwm_duty_target = pwm_duty_temp;
-        //     g_bldc_motor2.dir_set = CW;
-        //   }
-        //   else {
-        //     g_bldc_motor1.pwm_duty_target = -pwm_duty_temp;
-        //     g_bldc_motor1.dir_set = CCW;
-        //     g_bldc_motor2.pwm_duty_target = -pwm_duty_temp;
-        //     g_bldc_motor2.dir_set = CCW;
-        //   }
-        //   g_bldc_motor1.run_flag = RUN;
-        //   g_bldc_motor2.run_flag = RUN;
-        //   start_motor1();
-        //   start_motor2();
-        // }
-        // else if (key == KEY2_PRES)      //按下key0停止电机
-        // {
-        //   pwm_duty_temp = 0;
-        //   g_bldc_motor1.pwm_duty_target = 0;
-        //   g_bldc_motor2.pwm_duty_target = 0;
-        //   // g_bldc_motor1.run_flag = STOP;
+        HAL_Delay(10); // 延时10毫秒，控制主循环频率，约100Hz的控制频率
 
-        //   stop_motor1();
-        //   stop_motor2();
-        //   // g_bldc_motor2.run_flag = STOP;
-
-        // }
-        HAL_Delay(10);
 
         /* USER CODE END WHILE */
 
