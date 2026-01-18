@@ -13,8 +13,8 @@
 #include "main.h"
 #include <stdint.h>
 
-#define DUTY_STEP_UP                1      /* PWM占空比递增步长 */
-#define DUTY_STEP_DOWN              1      /* PWM占空比递减步长 */
+#define DUTY_STEP_UP                2      /* PWM占空比递增步长 */
+#define DUTY_STEP_DOWN              2      /* PWM占空比递减步长 */
 
 #define MOTOR_1                     1      /* 电机1标识符 */
 #define MOTOR_2                     2      /* 电机2标识符 */
