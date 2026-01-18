@@ -11,6 +11,8 @@ namespace control_software
         CHASSIS_STATUS_IDLE = 0,
         CHASSIS_STATUS_RETREAT = 1,
         CHASSIS_STATUS_RUNNING = 2,
+        CHASSIS_STATUS_LEFT = 3,
+        CHASSIS_STATUS_RIGHT = 4,
 
     }
     public struct CHASSIS_INFO
