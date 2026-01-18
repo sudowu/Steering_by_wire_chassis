@@ -100,6 +100,7 @@ int main(void)
     int16_t pwm_duty_temp = 0;               /* 临时PWM占空比值 */
     int16_t pwm_duty_last = 0;               /* 上次PWM占空比值，用于检测变化 */
     uint8_t data[8] = {0};                   /* CAN通信测试数据 */
+    uint8_t data1[8] = {0};                   /* CAN通信测试数据 */
     uint8_t remote_zero_count = 10;          /* 遥控器零点校准计数器 */
     /* USER CODE END 1 */
 
@@ -150,7 +151,11 @@ int main(void)
             data[5] = (adc_pwm1_hight_count >> 8);
             data[6] = (adc_pwm2_hight_count & 0xff);
             data[7] = (adc_pwm2_hight_count >> 8);
-            CAN_Send_HAL(0x09, data, 8);      // 通过CAN总线发送ID为0x01的心跳包，包含8字节数据
+            CAN_Send_HAL(0x09, data, 8);      // 通过CAN总线发送ID为0x09的心跳包，包含8字节数据
+
+            data1[0] = HAL_GPIO_ReadPin(BRAKE1_GPIO_Port, BRAKE1_Pin);
+            data1[1] = HAL_GPIO_ReadPin(BRAKE2_GPIO_Port, BRAKE2_Pin);
+            CAN_Send_HAL(0x0A, data1, 8);      // 通过CAN总线发送ID为0x09的心跳包，包含8字节数据
             t = 0;                            // 重置计数器
         }
         // 检测PWM占空比是否有变化，如有变化则输出当前PWM值到串口
