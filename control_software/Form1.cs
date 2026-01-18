@@ -40,7 +40,7 @@ namespace control_software
         private void Form1_Load(object sender, EventArgs e)
         {
             Int32 curindex = 0;
-;
+            //最大功率设置
             cHASSIS_INFO.Max_Power = 0x0600;
             cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_IDLE;
             //textBoxPower.Text = cHASSIS_INFO.Power.ToString();
@@ -80,9 +80,9 @@ namespace control_software
             comboBox_devtype.SelectedIndex = curindex;
 
             
-            listView_Info.Columns.Add("帧ID", 50, HorizontalAlignment.Center);
-            listView_Info.Columns.Add("帧格式", 50, HorizontalAlignment.Center);
-            listView_Info.Columns.Add("帧类型", 50, HorizontalAlignment.Center);
+            listView_Info.Columns.Add("帧ID", 70, HorizontalAlignment.Center);
+            listView_Info.Columns.Add("帧格式", 60, HorizontalAlignment.Center);
+            listView_Info.Columns.Add("帧类型", 60, HorizontalAlignment.Center);
             listView_Info.Columns.Add("数据", 200, HorizontalAlignment.Center);
             listView_Info.SmallImageList = imageList1;
         }
@@ -108,6 +108,7 @@ namespace control_software
                 }
 
                 m_bOpen = 1;
+                m_start = 0;
                 //VCI_INIT_CONFIG config = new VCI_INIT_CONFIG();
                 //config.AccCode = System.Convert.ToUInt32("0x" + textBox_AccCode.Text, 16);
                 //config.AccMask = System.Convert.ToUInt32("0x" + textBox_AccMask.Text, 16);
@@ -127,28 +128,18 @@ namespace control_software
 
             res = controlcan.VCI_Receive(m_devtype, m_devind, m_canind, ref m_recobj[0], 1000, 100);
 
-            /////////////////////////////////////
-            //IntPtr[] ptArray = new IntPtr[1];
-            //ptArray[0] = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(VCI_CAN_OBJ)) * 50);
-            //IntPtr pt = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(IntPtr)) * 1);
 
-            //Marshal.Copy(ptArray, 0, pt, 1);
-
-
-            //res = VCI_Receive(m_devtype, m_devind, m_canind, pt, 50/*50*/, 100);
-            ////////////////////////////////////////////////////////
             if (res == 0xFFFFFFFF) res = 0;//当设备未初始化时，返回0xFFFFFFFF，不进行列表显示。
             
-            ListViewItem lvi = new ListViewItem();
+            
             for (UInt32 i = 0; i < res; i++)
             {
                 //VCI_CAN_OBJ obj = (VCI_CAN_OBJ)Marshal.PtrToStructure((IntPtr)((UInt32)pt + i * Marshal.SizeOf(typeof(VCI_CAN_OBJ))), typeof(VCI_CAN_OBJ));
+                ListViewItem lvi = new ListViewItem();
 
-                this.listView_Info.BeginUpdate();   //数据更新，UI暂时挂起，直到EndUpdate绘制控件，可以有效避免闪烁并大大提高加载速度  
                 String str = "";
                 lvi.ImageIndex = 1;
-                lvi.Text = "0x" + System.Convert.ToString(m_recobj[i].ID, 16);
-                
+                lvi.Text = "0x" + m_recobj[i].ID.ToString("X2");
                 if (m_recobj[i].RemoteFlag == 0)
                     lvi.SubItems.Add("数据帧");
                 else
@@ -181,11 +172,42 @@ namespace control_software
                             str += " " + m_recobj1->Data[6].ToString("X2");
                         if (j++ < len)
                             str += " " + m_recobj1->Data[7].ToString("X2");
+                        if(m_recobj1->ID == 0x0A)
+                        {
+                            if(m_recobj1->Data[0] == 1)
+                            {
+                                button_brake_state1.BackColor = Color.Red;
+                                button_brake_state1.Text = "制动";
+                            }
+                            else
+                            {
+                                button_brake_state1.BackColor = Color.Green;
+                                button_brake_state1.Text = "解除";
+                            }
+                            if(m_recobj1->Data[1] == 1)
+                            {
+                                button_brake_state2.BackColor = Color.Red;
+                                button_brake_state2.Text = "制动";
+                            }
+                            else
+                            {
+                                button_brake_state2.BackColor = Color.Green;
+                                button_brake_state2.Text = "解除";
+                            }
+                        }
+                        if(m_recobj1->ID == 0x09)
+                        { 
+                            textBox_motor1.Text = (m_recobj1->Data[0] | (m_recobj1 -> Data[1] << 8)).ToString();
+                            textBox_motor2.Text = (m_recobj1->Data[2] | (m_recobj1->Data[3] << 8)).ToString();
+                            textBox_Remote2.Text = (m_recobj1->Data[4] | (m_recobj1->Data[5] << 8)).ToString();
+                            textBox_Remote4.Text = (m_recobj1->Data[6] | (m_recobj1->Data[7] << 8)).ToString();
+                        }
                     }
                 }
+                this.listView_Info.BeginUpdate();   //数据更新，UI暂时挂起，直到EndUpdate绘制控件，可以有效避免闪烁并大大提高加载速度 
                 lvi.SubItems.Add(str);
-                this.listView_Info.Items.Add(lvi);
-                this.listView_Info.EndUpdate();  //结束数据处理，UI界面一次性绘制。
+                listView_Info.Items.Add(lvi);
+                listView_Info.EndUpdate();  //结束数据处理，UI界面一次性绘制。
                 if(listView_Info.Items.Count > 0)
                     listView_Info.EnsureVisible(listView_Info.Items.Count - 1);
             }
@@ -193,12 +215,13 @@ namespace control_software
                 return;
             
             VCI_CAN_OBJ sendobj = new VCI_CAN_OBJ();
-            //sendobj.Init();
+            
             sendobj.RemoteFlag = 0;
             sendobj.ExternFlag = 0;
             sendobj.ID = 0x08;
             sendobj.DataLen = 8;
             UInt16 speed = (UInt16)(cHASSIS_INFO.Max_Power / 100 * trackBar_Power.Value);
+            UInt16 angle = (UInt16)(cHASSIS_INFO.Max_Power / 100 * trackBar_direction.Value);
             ListViewItem lvi2 = new ListViewItem();
             lvi2.Text = "0x08";
             lvi2.ImageIndex = 0;
@@ -208,19 +231,30 @@ namespace control_software
 
             if (cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_RETREAT)
                 speed = (UInt16)(0 - speed);
+            if (cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_RIGHT)
+                angle = (UInt16)(0 - angle);
             if (cHASSIS_INFO.stop_flag == 1)
             {
                 speed = 0;
                 cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_IDLE;
                 cHASSIS_INFO.stop_flag = 0;
             }
-            sendobj.Data[0] = System.Convert.ToByte(speed & 0x00ff);
-
-            sendobj.Data[1] = System.Convert.ToByte((speed & 0xff00) >> 8);
-
+            sendobj.Data[0] = 0;
+            sendobj.Data[1] = 0;
+            if (cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_RETREAT || cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_RUNNING)
+            {
+                sendobj.Data[0] = System.Convert.ToByte(speed &  0xff);
+                sendobj.Data[1] = System.Convert.ToByte(speed >> 8);
+            }
             sendobj.Data[2] = 0;
 
             sendobj.Data[3] = 0;
+
+            if (cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_LEFT || cHASSIS_INFO.status == CHASSIS_STATUS.CHASSIS_STATUS_RIGHT)
+            {
+                sendobj.Data[2] = (byte)(angle & 0x00ff);
+                sendobj.Data[3] = (byte)(angle >> 8);
+            }
 
             sendobj.Data[4] = 0;
 
@@ -323,6 +357,8 @@ namespace control_software
             cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_RUNNING;
             button_advance.BackColor = System.Drawing.Color.SpringGreen;
             button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_turn_right.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_turn_left.BackColor = System.Drawing.SystemColors.ButtonHighlight;
         }
 
         private void button_Retreat_Click(object sender, EventArgs e)
@@ -332,6 +368,8 @@ namespace control_software
             cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_RETREAT;
             button_Retreat.BackColor = System.Drawing.Color.SpringGreen;
             button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_turn_right.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_turn_left.BackColor = System.Drawing.SystemColors.ButtonHighlight;
         }
 
         private void button_Stop_Click(object sender, EventArgs e)
@@ -340,8 +378,67 @@ namespace control_software
                 return;
             cHASSIS_INFO.stop_flag = 1;
             //cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_IDLE;
+            button_turn_right.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_turn_left.BackColor = System.Drawing.SystemColors.ButtonHighlight;
             button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
             button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
         }
+
+        private void button_turn_left_Click(object sender, EventArgs e)
+        {
+            if (m_bOpen == 0)
+                return;
+            //cHASSIS_INFO.stop_flag = 1;
+            //while (button_brake_state1.BackColor != Color.Red && button_brake_state2.BackColor != Color.Red) ;
+            //while (cHASSIS_INFO.status != CHASSIS_STATUS.CHASSIS_STATUS_IDLE) ;
+            cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_LEFT;
+            button_turn_left.BackColor = System.Drawing.Color.SpringGreen;
+            button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_turn_right.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+
+
+        }
+
+        private void button_turn_right_Click(object sender, EventArgs e)
+        {
+            if (m_bOpen == 0)
+                return;
+            //cHASSIS_INFO.stop_flag = 1;
+            //while (button_brake_state1.BackColor != Color.Red && button_brake_state2.BackColor != Color.Red) ;
+            //while (cHASSIS_INFO.status != CHASSIS_STATUS.CHASSIS_STATUS_IDLE) ;
+            cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_RIGHT;
+            button_turn_right.BackColor = System.Drawing.Color.SpringGreen;
+            button_turn_left.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+        }
+
+        private void comboBox_CANIndex_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void groupBox3_Enter(object sender, EventArgs e)
+        {
+
+        }
+
+        private void trackBar_direction_Scroll(object sender, EventArgs e)
+        {
+            label_direction.Text = trackBar_direction.Value.ToString() + "%";
+        }
+
+        private void trackBar_Power_Scroll(object sender, EventArgs e)
+        {
+            label_power.Text = trackBar_Power.Value.ToString() + "%";
+        }
+
+
     }
 }
