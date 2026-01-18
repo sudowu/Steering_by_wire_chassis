@@ -99,7 +99,7 @@ int main(void)
     uint8_t t = 0;                           /* 计时计数器，用于LED闪烁和CAN通信定时 */
     int16_t pwm_duty_temp = 0;               /* 临时PWM占空比值 */
     int16_t pwm_duty_last = 0;               /* 上次PWM占空比值，用于检测变化 */
-    uint8_t data[8] = {1, 2, 3, 4, 5, 6, 7, 8}; /* CAN通信测试数据 */
+    uint8_t data[8] = {0};                   /* CAN通信测试数据 */
     uint8_t remote_zero_count = 10;          /* 遥控器零点校准计数器 */
     /* USER CODE END 1 */
 
@@ -142,7 +142,15 @@ int main(void)
         if (t == 20)
         {
             LED0_TOGGLE();                    // 翻转LED0的状态（闪烁指示系统运行）
-            CAN_Send_HAL(0x01, data, 8);      // 通过CAN总线发送ID为0x01的心跳包，包含8字节数据
+            data[0] = (s_chassis.bldc1->pwm_duty) & 0xff;
+            data[1] = (s_chassis.bldc1->pwm_duty) >> 8;
+            data[2] = (s_chassis.bldc2->pwm_duty) & 0xff;
+            data[3] = (s_chassis.bldc2->pwm_duty) >> 8;
+            data[4] = (adc_pwm1_hight_count & 0xff);
+            data[5] = (adc_pwm1_hight_count >> 8);
+            data[6] = (adc_pwm2_hight_count & 0xff);
+            data[7] = (adc_pwm2_hight_count >> 8);
+            CAN_Send_HAL(0x09, data, 8);      // 通过CAN总线发送ID为0x01的心跳包，包含8字节数据
             t = 0;                            // 重置计数器
         }
         // 检测PWM占空比是否有变化，如有变化则输出当前PWM值到串口
@@ -156,9 +164,9 @@ int main(void)
         {
             flag_adc_dma = 0;                   // 清除ADC DMA转换完成标志
         }
-        // 校准遥控器零点：当remote_zero为0且adc_pwm1_hight_count在140-170范围内且remote_zero_count为0时
-        if (remote_zero == 0 && adc_pwm1_hight_count > 140 &&
-            adc_pwm1_hight_count < 170 && remote_zero_count == 0)
+        // 校准遥控器零点：当remote_zero为0且adc_pwm1_hight_count在140-170范围内且remote_zero_count不为0时
+        if (adc_pwm1_hight_count > 140 &&
+            adc_pwm1_hight_count < 170 && remote_zero_count != 0)
         {
             // 进行10次采样取平均值作为遥控器中位点
             if (remote_zero_count == 10)
