@@ -88,11 +88,11 @@
             this.label_power = new System.Windows.Forms.Label();
             this.label16 = new System.Windows.Forms.Label();
             this.groupBox5 = new System.Windows.Forms.GroupBox();
-            this.groupBox6 = new System.Windows.Forms.GroupBox();
-            this.label18 = new System.Windows.Forms.Label();
-            this.label19 = new System.Windows.Forms.Label();
-            this.label20 = new System.Windows.Forms.Label();
             this.label21 = new System.Windows.Forms.Label();
+            this.label20 = new System.Windows.Forms.Label();
+            this.label19 = new System.Windows.Forms.Label();
+            this.label18 = new System.Windows.Forms.Label();
+            this.groupBox6 = new System.Windows.Forms.GroupBox();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_Power)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_direction)).BeginInit();
             this.groupBox1.SuspendLayout();
@@ -153,7 +153,6 @@
             this.comboBox_devtype.Name = "comboBox_devtype";
             this.comboBox_devtype.Size = new System.Drawing.Size(129, 26);
             this.comboBox_devtype.TabIndex = 2;
-            this.comboBox_devtype.Text = "类型";
             // 
             // comboBox_DevIndex
             // 
@@ -167,7 +166,6 @@
             this.comboBox_DevIndex.Name = "comboBox_DevIndex";
             this.comboBox_DevIndex.Size = new System.Drawing.Size(100, 26);
             this.comboBox_DevIndex.TabIndex = 3;
-            this.comboBox_DevIndex.Text = "索引号";
             // 
             // comboBox_CANIndex
             // 
@@ -179,7 +177,6 @@
             this.comboBox_CANIndex.Name = "comboBox_CANIndex";
             this.comboBox_CANIndex.Size = new System.Drawing.Size(120, 26);
             this.comboBox_CANIndex.TabIndex = 4;
-            this.comboBox_CANIndex.Text = "通道";
             this.comboBox_CANIndex.SelectedIndexChanged += new System.EventHandler(this.comboBox_CANIndex_SelectedIndexChanged);
             // 
             // comboBox_Filter
@@ -193,7 +190,6 @@
             this.comboBox_Filter.Name = "comboBox_Filter";
             this.comboBox_Filter.Size = new System.Drawing.Size(120, 26);
             this.comboBox_Filter.TabIndex = 4;
-            this.comboBox_Filter.Text = "滤波方式";
             // 
             // comboBox_Mode
             // 
@@ -206,7 +202,6 @@
             this.comboBox_Mode.Name = "comboBox_Mode";
             this.comboBox_Mode.Size = new System.Drawing.Size(120, 26);
             this.comboBox_Mode.TabIndex = 4;
-            this.comboBox_Mode.Text = "模式";
             // 
             // comboBox_FrameType
             // 
@@ -218,7 +213,6 @@
             this.comboBox_FrameType.Name = "comboBox_FrameType";
             this.comboBox_FrameType.Size = new System.Drawing.Size(90, 26);
             this.comboBox_FrameType.TabIndex = 4;
-            this.comboBox_FrameType.Text = "帧类型";
             // 
             // comboBox_FrameFormat
             // 
@@ -230,7 +224,6 @@
             this.comboBox_FrameFormat.Name = "comboBox_FrameFormat";
             this.comboBox_FrameFormat.Size = new System.Drawing.Size(90, 26);
             this.comboBox_FrameFormat.TabIndex = 4;
-            this.comboBox_FrameFormat.Text = "帧格式";
             // 
             // textBox_Data
             // 
@@ -259,7 +252,6 @@
             this.textBox_ID.Name = "textBox_ID";
             this.textBox_ID.Size = new System.Drawing.Size(79, 28);
             this.textBox_ID.TabIndex = 8;
-            this.textBox_ID.Text = "帧ID";
             // 
             // textBox_Time0
             // 
@@ -267,7 +259,6 @@
             this.textBox_Time0.Name = "textBox_Time0";
             this.textBox_Time0.Size = new System.Drawing.Size(100, 28);
             this.textBox_Time0.TabIndex = 8;
-            this.textBox_Time0.Text = "定时器0";
             // 
             // textBox_Time1
             // 
@@ -275,7 +266,6 @@
             this.textBox_Time1.Name = "textBox_Time1";
             this.textBox_Time1.Size = new System.Drawing.Size(100, 28);
             this.textBox_Time1.TabIndex = 9;
-            this.textBox_Time1.Text = "定时器1";
             // 
             // textBox_AccCode
             // 
@@ -283,7 +273,6 @@
             this.textBox_AccCode.Name = "textBox_AccCode";
             this.textBox_AccCode.Size = new System.Drawing.Size(100, 28);
             this.textBox_AccCode.TabIndex = 8;
-            this.textBox_AccCode.Text = "验收码";
             // 
             // textBox_AccMask
             // 
@@ -291,7 +280,6 @@
             this.textBox_AccMask.Name = "textBox_AccMask";
             this.textBox_AccMask.Size = new System.Drawing.Size(100, 28);
             this.textBox_AccMask.TabIndex = 9;
-            this.textBox_AccMask.Text = "屏蔽码";
             // 
             // listView_Info
             // 
@@ -390,7 +378,6 @@
             this.textBox_motor1.Name = "textBox_motor1";
             this.textBox_motor1.Size = new System.Drawing.Size(107, 28);
             this.textBox_motor1.TabIndex = 16;
-            this.textBox_motor1.Text = "电机1";
             // 
             // textBox_motor2
             // 
@@ -398,7 +385,6 @@
             this.textBox_motor2.Name = "textBox_motor2";
             this.textBox_motor2.Size = new System.Drawing.Size(104, 28);
             this.textBox_motor2.TabIndex = 16;
-            this.textBox_motor2.Text = "电机2";
             // 
             // button_brake_state1
             // 
@@ -424,7 +410,6 @@
             this.textBox_Remote2.Name = "textBox_Remote2";
             this.textBox_Remote2.Size = new System.Drawing.Size(116, 28);
             this.textBox_Remote2.TabIndex = 16;
-            this.textBox_Remote2.Text = "前后遥控信号";
             // 
             // textBox_Remote4
             // 
@@ -432,7 +417,6 @@
             this.textBox_Remote4.Name = "textBox_Remote4";
             this.textBox_Remote4.Size = new System.Drawing.Size(116, 28);
             this.textBox_Remote4.TabIndex = 16;
-            this.textBox_Remote4.Text = "方向遥控信号";
             // 
             // groupBox1
             // 
@@ -708,33 +692,14 @@
             this.groupBox5.TabStop = false;
             this.groupBox5.Text = "发送数据帧";
             // 
-            // groupBox6
+            // label21
             // 
-            this.groupBox6.Controls.Add(this.listView_Info);
-            this.groupBox6.Location = new System.Drawing.Point(665, 367);
-            this.groupBox6.Name = "groupBox6";
-            this.groupBox6.Size = new System.Drawing.Size(616, 442);
-            this.groupBox6.TabIndex = 22;
-            this.groupBox6.TabStop = false;
-            this.groupBox6.Text = "信息";
-            // 
-            // label18
-            // 
-            this.label18.AutoSize = true;
-            this.label18.Location = new System.Drawing.Point(350, 30);
-            this.label18.Name = "label18";
-            this.label18.Size = new System.Drawing.Size(62, 18);
-            this.label18.TabIndex = 11;
-            this.label18.Text = "帧ID：";
-            // 
-            // label19
-            // 
-            this.label19.AutoSize = true;
-            this.label19.Location = new System.Drawing.Point(185, 30);
-            this.label19.Name = "label19";
-            this.label19.Size = new System.Drawing.Size(80, 18);
-            this.label19.TabIndex = 11;
-            this.label19.Text = "帧类型：";
+            this.label21.AutoSize = true;
+            this.label21.Location = new System.Drawing.Point(26, 30);
+            this.label21.Name = "label21";
+            this.label21.Size = new System.Drawing.Size(80, 18);
+            this.label21.TabIndex = 11;
+            this.label21.Text = "帧格式：";
             // 
             // label20
             // 
@@ -745,14 +710,33 @@
             this.label20.TabIndex = 11;
             this.label20.Text = "数据：";
             // 
-            // label21
+            // label19
             // 
-            this.label21.AutoSize = true;
-            this.label21.Location = new System.Drawing.Point(26, 30);
-            this.label21.Name = "label21";
-            this.label21.Size = new System.Drawing.Size(80, 18);
-            this.label21.TabIndex = 11;
-            this.label21.Text = "帧格式：";
+            this.label19.AutoSize = true;
+            this.label19.Location = new System.Drawing.Point(185, 30);
+            this.label19.Name = "label19";
+            this.label19.Size = new System.Drawing.Size(80, 18);
+            this.label19.TabIndex = 11;
+            this.label19.Text = "帧类型：";
+            // 
+            // label18
+            // 
+            this.label18.AutoSize = true;
+            this.label18.Location = new System.Drawing.Point(350, 30);
+            this.label18.Name = "label18";
+            this.label18.Size = new System.Drawing.Size(62, 18);
+            this.label18.TabIndex = 11;
+            this.label18.Text = "帧ID：";
+            // 
+            // groupBox6
+            // 
+            this.groupBox6.Controls.Add(this.listView_Info);
+            this.groupBox6.Location = new System.Drawing.Point(665, 367);
+            this.groupBox6.Name = "groupBox6";
+            this.groupBox6.Size = new System.Drawing.Size(616, 442);
+            this.groupBox6.TabIndex = 22;
+            this.groupBox6.TabStop = false;
+            this.groupBox6.Text = "信息";
             // 
             // Form1
             // 
