@@ -93,21 +93,7 @@ void vTask_Data_Send(void* parameter)
         // {
         //     vPortFree(info_rpm); // 发送失败，释放内存
         // }
-        // if (Motor_ReadAdcCurrent(&g_Motor1) == HAL_OK)
-        // {
-        //     uint8_t* info_current = pvPortMalloc(100);
-        //     sprintf((char*)info_current, "current:%.3f,%.3f,%.3f\n",
-        //             g_Motor1.adc_current.adc_current_u,
-        //             g_Motor1.adc_current.adc_current_v,
-        //             g_Motor1.adc_current.adc_current_w);
-        //     if (xQueueSendToFront(xQueueSeriel, &info_current, 0) != pdPASS)
-        //     {
-        //         vPortFree(info_current); // 发送失败，释放内存
-        //     }
-        // }
 
-
-        // float a = g_Motor1.adc_current.adc_current_u;
         HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
         vTaskDelay(pdMS_TO_TICKS(100));
     }
