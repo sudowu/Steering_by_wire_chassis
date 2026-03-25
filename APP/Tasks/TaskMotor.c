@@ -17,10 +17,11 @@
 #include "timers.h"
 #include "usart.h"
 #include "cmsis_os2.h"
-
+#include "Filter.h"
 
 TaskHandle_t g_TaskMotor;
 SemaphoreHandle_t xSemaphoreADCReady;
+
 void vTaskMotor(void* parameter)
 {
     motor_init();
@@ -31,7 +32,7 @@ void vTaskMotor(void* parameter)
 
     hall_start(&g_Motor1);
     hall_start(&g_Motor2);
-    motor_start(&g_Motor1, 1, 60);
+    motor_start(&g_Motor1, 1, 70);
 
 
     while (1)
@@ -43,29 +44,47 @@ void vTaskMotor(void* parameter)
 
 void vTask_ADC_Sample(void* parameter)
 {
+    float total_current = 0;
+    float filtered_current = 0;
+    uint8_t erro_sum = 0;
+    LowPassFilter current_lpf;
+    MedianFilter3 current_median = {0}; // 初始化中值滤波器状态
+    lpf_init(&current_lpf, 0.3f); // 设置滤波系数，0.1表示较强的滤波效果，实际应用中可以调整这个
+
     xSemaphoreADCReady = xSemaphoreCreateBinary();
     while (1)
     {
         xSemaphoreTake(xSemaphoreADCReady, portMAX_DELAY);
-         if (g_Motor1.adc_current.offset_calibrated == 0)
-         {
-             continue; // 偏置未校准，跳过当前值计算
-         }
+        if (g_Motor1.adc_current.offset_calibrated == 0)
+        {
+            continue; // 偏置未校准，跳过当前值计算
+        }
         if (Motor_ReadAdcCurrent(&g_Motor1) == HAL_OK)
         {
-            float total_current = Motor_GetTotalCurrent(&g_Motor1);
+            total_current = Motor_GetTotalCurrent(&g_Motor1);
+            median_filter_3(&current_median, total_current); // 更新中值滤波器状态
+            filtered_current = lpf_update(&current_lpf, total_current); // 更新低通滤波器状态
+
             uint8_t* info_current = pvPortMalloc(100);
-            sprintf((char*)info_current, "current:%f,%f,%f, %f\n",
+
+            sprintf((char*)info_current, "current:%f,%f,%f,%f,%d,%f,%ld\n",
                     g_Motor1.adc_current.adc_current_u,
                     g_Motor1.adc_current.adc_current_v,
                     g_Motor1.adc_current.adc_current_w,
-                    total_current);
-            if (xQueueSendToFront(xQueueSeriel, &info_current, 0) != pdPASS)
+                    filtered_current,
+                    erro_sum,
+                    total_current,
+                    HAL_GetTick());
+            if (xQueueSendToFront(xQueueSeriel, &info_current, 1) != pdPASS)
             {
+                erro_sum++;
                 vPortFree(info_current); // 发送失败，释放内存
             }
+            else
+            {
+                erro_sum = 0;
+            }
         }
-
     }
 }
 

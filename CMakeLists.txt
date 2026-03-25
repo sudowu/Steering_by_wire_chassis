@@ -50,6 +50,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         Device/Src/Motor.c
         APP/Tasks/TaskSeriel.c
         Device/Src/PID.c
+        Device/Src/Filter.c
 )
 
 # Add include paths

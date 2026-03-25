@@ -141,7 +141,7 @@ void StartDefaultTask(void *argument)
   vQueueAddToRegistry(canTxQueue, "CAN Tx Queue");
 
   // xTaskCreate(vTaskTest,"test Task", 128, NULL, osPriorityNormal, &g_testTask);
-  xTaskCreate(vTask_ADC_Sample,"ADC Sample Task", 256, NULL, osPriorityNormal, NULL);
+  xTaskCreate(vTask_ADC_Sample,"ADC Sample Task", 512, NULL, osPriorityNormal, NULL);
   xTaskCreate(vTaskCanInfo,"CAN Info Task", 128, NULL, osPriorityNormal, &g_TaskCanInfo);
   xTaskCreate(vTaskSeriel,"Serial Task", 128, NULL, osPriorityNormal, &g_TaskSeriel);
   xTaskCreate(vTaskMotor,"Motor Task", 512, NULL, osPriorityNormal, &g_TaskMotor);

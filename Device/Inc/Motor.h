@@ -63,6 +63,7 @@ extern Motor_t g_Motor1;
 extern Motor_t g_Motor2;
 extern uint16_t ADC_Buffer[ADC_SAMPLE_GROUP][ADC_CHANNELS]; // ADC DMA 缓冲区
 extern uint8_t ADC_DataReady; // ADC 数据就绪标志
+
 void motor_init();
 void hall_start(Motor_t* motor);
 void hall_state_read(Motor_t* motor);
