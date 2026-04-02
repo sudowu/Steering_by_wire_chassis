@@ -145,7 +145,7 @@ void StartDefaultTask(void *argument)
   xTaskCreate(vTaskCanInfo,"CAN Info Task", 128, NULL, osPriorityNormal, &g_TaskCanInfo);
   xTaskCreate(vTaskSeriel,"Serial Task", 128, NULL, osPriorityNormal, &g_TaskSeriel);
   xTaskCreate(vTaskMotor,"Motor Task", 512, NULL, osPriorityNormal, &g_TaskMotor);
-    xTaskCreate(vTask_Data_Send, "Data Send Task", 256, NULL, osPriorityNormal, NULL);
+  xTaskCreate(vTask_Data_Send, "Data Send Task", 256, NULL, osPriorityNormal, NULL);
   taskEXIT_CRITICAL();
   /* Infinite loop */
   vTaskDelete(NULL);

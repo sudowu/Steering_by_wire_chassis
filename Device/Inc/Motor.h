@@ -32,6 +32,13 @@ typedef enum
     MOTOR2 = 1,
 }motorId;
 
+typedef enum
+{
+    STOP = 0,
+    CW = 1, // 顺时针
+    CCW = 2 // 逆时针
+}direction_t;
+
 typedef struct
 {
     // 新增：ADC 电流采样相关
@@ -49,12 +56,15 @@ typedef struct
 {
     motorId id; // 电机ID
     TIM_HandleTypeDef* htim; // 关联的定时器句柄
+    TIM_HandleTypeDef* encoder; // 关联的编码器定时器句柄
     uint8_t run_state; // 运行状态：0-停止，1-运行
-    uint8_t direction; // 方向：0-停止，1-顺时针，2-逆时针
+    direction_t direction; // 方向：0-停止，1-顺时针，2-逆时针
+    direction_t encoder_direction; // 编码器方向：0-正转，1-反转
     uint8_t hall_state; // 霍尔状态，范围0-7
     uint16_t pwm_duty; // PWM占空比，范围0-1000
     uint32_t commutating_counter; // 计数器，用于换相
-    float rpm;
+    double rpm;
+    int32_t last_encoder_count; // 上次编码器计数，用于计算delta
     adc_current_t adc_current; // 电流采样数据
     AdvancedPID_TypeDef pid; // PID控制器实例
 } Motor_t;
@@ -70,9 +80,10 @@ void hall_state_read(Motor_t* motor);
 void motor_start(Motor_t* motor, uint8_t direction, uint16_t pwm_duty);
 void motor_commutating_phase_callback(Motor_t* motor);
 void MotorControl(const Motor_t* motor, const motor_pwm_config_t* config);
-
+void motor_rpm_read(Motor_t* motor);
 void Motor_OffsetCalibration(Motor_t* motor);
 HAL_StatusTypeDef Motor_OffsetCalibrate(Motor_t* motor);
 HAL_StatusTypeDef Motor_ReadAdcCurrent(Motor_t* motor);
 float Motor_GetTotalCurrent(Motor_t* motor);
 #endif //MOTOR_MOTOR_H
+

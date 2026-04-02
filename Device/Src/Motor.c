@@ -18,7 +18,8 @@ Motor_t g_Motor1 = {
     .hall_state = 0,
     .pwm_duty = 0,
     .run_state = 0,
-    .commutating_counter = 0
+    .commutating_counter = 0,
+    .last_encoder_count = 0
 };
 Motor_t g_Motor2 = {
     .id = MOTOR2,
@@ -26,7 +27,8 @@ Motor_t g_Motor2 = {
     .hall_state = 0,
     .pwm_duty = 0,
     .run_state = 0,
-    .commutating_counter = 0
+    .commutating_counter = 0,
+    .last_encoder_count = 0
 };
 
 const motor_pwm_config_t motor_pwm_configs[6] = {
@@ -45,19 +47,42 @@ void motor_init()
     // 初始化电机1
     g_Motor1.id = MOTOR1;
     g_Motor1.htim = &htim1; // 关联定时器1
+    g_Motor1.encoder = &htim3; // 编码器定时器
     g_Motor1.direction = 0;
     g_Motor1.hall_state = 0;
     g_Motor1.pwm_duty = 0;
     g_Motor1.run_state = 0;
     g_Motor1.commutating_counter = 0;
+    g_Motor1.last_encoder_count = 0;
     // 初始化电机2
     g_Motor2.id = MOTOR2;
     g_Motor2.htim = &htim8; // 关联定时器8
+    g_Motor2.encoder = &htim2; // 编码器定时器
     g_Motor2.direction = 0;
     g_Motor2.hall_state = 0;
     g_Motor2.pwm_duty = 0;
     g_Motor2.run_state = 0;
     g_Motor2.commutating_counter = 0;
+    g_Motor2.last_encoder_count = 0;
+}
+
+
+void motor_rpm_read(Motor_t* motor)
+{
+    // 这里可以添加读取电机转速的代码，例如通过编码器或霍尔传感器计算转速
+    // 计算转速并更新 motor->rpm 字段
+
+    int32_t currentCount = __HAL_TIM_GET_COUNTER(motor->encoder);
+    int32_t delta = currentCount - motor->last_encoder_count;
+
+    // 处理计数器溢出
+    if (delta > 0x8000) delta -= 0x10000;
+    else if (delta < -0x8000) delta += 0x10000;
+
+    // RPM计算: 每转脉冲数=1024PPR, 采样周期=0.1s
+    motor->rpm = 0 - (delta * 600.0) / (1024 * 4); // 4倍频修正
+
+    motor->last_encoder_count = currentCount;
 }
 
 HAL_StatusTypeDef Motor_OffsetCalibrate(Motor_t* motor)
@@ -171,12 +196,15 @@ void hall_state_read(Motor_t* motor)
     {
         motor_hall_state = 0; // 如果读取的霍尔状态超过7，重置为0，避免无效状态
     }
+    if (motor->direction == 2) // 如果方向为逆时针，进行状态转换
+    {
+        motor_hall_state = 7 - motor_hall_state; // 逆时针状态转换
+    }
     motor->hall_state = motor_hall_state; // 更新电机的霍尔状态
 }
 
 void motor_start(Motor_t* motor, uint8_t direction, uint16_t pwm_duty)
 {
-    HAL_GPIO_WritePin(PM1_CTRL_SD_GPIO_Port, PM1_CTRL_SD_Pin, GPIO_PIN_SET);
     motor->direction = direction;
     motor->pwm_duty = pwm_duty;
     motor->run_state = 1; // 设置运行状态为1，表示电机正在运行
@@ -189,12 +217,17 @@ void motor_start(Motor_t* motor, uint8_t direction, uint16_t pwm_duty)
     HAL_TIM_PWM_Start(motor->htim, TIM_CHANNEL_3);
     if (motor->id == MOTOR1)
     {
+        //关闭电子刹车
+        HAL_GPIO_WritePin(PM1_CTRL_SD_GPIO_Port, PM1_CTRL_SD_Pin, GPIO_PIN_SET);
+
         HAL_GPIO_WritePin(PM1_PWM_UL_GPIO_Port,PM1_PWM_UL_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(PM1_PWM_VL_GPIO_Port,PM1_PWM_VL_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(PM1_PWM_WL_GPIO_Port,PM1_PWM_WL_Pin, GPIO_PIN_RESET);
     }
     else if (motor->id == MOTOR2)
     {
+        HAL_GPIO_WritePin(PM2_CTRL_SD_GPIO_Port, PM2_CTRL_SD_Pin, GPIO_PIN_SET);
+
         HAL_GPIO_WritePin(PM2_PWM_UL_GPIO_Port,PM2_PWM_UL_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(PM2_PWM_VL_GPIO_Port,PM2_PWM_VL_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(PM2_PWM_WL_GPIO_Port,PM2_PWM_WL_Pin, GPIO_PIN_RESET);

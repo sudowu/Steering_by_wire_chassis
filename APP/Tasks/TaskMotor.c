@@ -21,6 +21,7 @@
 
 TaskHandle_t g_TaskMotor;
 SemaphoreHandle_t xSemaphoreADCReady;
+TimerHandle_t xTimerRPMRead;
 
 void vTaskMotor(void* parameter)
 {
@@ -30,9 +31,12 @@ void vTaskMotor(void* parameter)
     vTaskDelay(1000); // 等待 ADC 稳定
     Motor_OffsetCalibrate(&g_Motor1);
 
+    xTimerRPMRead = xTimerCreate("rpm_read", pdMS_TO_TICKS(100), pdTRUE, NULL, vTaskRPM_Read);
+    xTimerStart(xTimerRPMRead, 200);
     hall_start(&g_Motor1);
     hall_start(&g_Motor2);
-    motor_start(&g_Motor1, 1, 70);
+    motor_start(&g_Motor1, 2, 70);
+    motor_start(&g_Motor2, 1, 70);
 
 
     while (1)
@@ -41,6 +45,13 @@ void vTaskMotor(void* parameter)
     }
 }
 
+
+void vTaskRPM_Read(TimerHandle_t xTimer)
+{
+    motor_rpm_read(&g_Motor1);
+    motor_rpm_read(&g_Motor2);
+    HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
+}
 
 void vTask_ADC_Sample(void* parameter)
 {
@@ -65,25 +76,25 @@ void vTask_ADC_Sample(void* parameter)
             median_filter_3(&current_median, total_current); // 更新中值滤波器状态
             filtered_current = lpf_update(&current_lpf, total_current); // 更新低通滤波器状态
 
-            uint8_t* info_current = pvPortMalloc(100);
-
-            sprintf((char*)info_current, "current:%f,%f,%f,%f,%d,%f,%ld\n",
-                    g_Motor1.adc_current.adc_current_u,
-                    g_Motor1.adc_current.adc_current_v,
-                    g_Motor1.adc_current.adc_current_w,
-                    filtered_current,
-                    erro_sum,
-                    total_current,
-                    HAL_GetTick());
-            if (xQueueSendToFront(xQueueSeriel, &info_current, 1) != pdPASS)
-            {
-                erro_sum++;
-                vPortFree(info_current); // 发送失败，释放内存
-            }
-            else
-            {
-                erro_sum = 0;
-            }
+            // uint8_t* info_current = pvPortMalloc(100);
+            //
+            // sprintf((char*)info_current, "current:%f,%f,%f,%f,%d,%f,%ld\n",
+            //         g_Motor1.adc_current.adc_current_u,
+            //         g_Motor1.adc_current.adc_current_v,
+            //         g_Motor1.adc_current.adc_current_w,
+            //         filtered_current,
+            //         erro_sum,
+            //         total_current,
+            //         HAL_GetTick());
+            // if (xQueueSendToFront(xQueueSeriel, &info_current, 1) != pdPASS)
+            // {
+            //     erro_sum++;
+            //     vPortFree(info_current); // 发送失败，释放内存
+            // }
+            // else
+            // {
+            //     erro_sum = 0;
+            // }
         }
     }
 }
@@ -102,16 +113,15 @@ void vTask_Data_Send(void* parameter)
         {
             rpm_ave += rpm_buff[j];
         }
-        g_Motor1.rpm = (rpm_ave / 10);
+        // g_Motor1.rpm = (rpm_ave / 10);
         rpm_ave = 0;
-        // uint8_t* info_rpm = pvPortMalloc(100);
-        // sprintf((char*)info_rpm, "rpm:%f,%ld,%d,", g_Motor1.rpm, g_Motor1.commutating_counter,
-        //         g_Motor1.pwm_duty);
-        // g_Motor1.commutating_counter = 0;
-        // if (xQueueSendToFront(xQueueSeriel, &info_rpm, 0) != pdPASS)
-        // {
-        //     vPortFree(info_rpm); // 发送失败，释放内存
-        // }
+        uint8_t* info_rpm = pvPortMalloc(100);
+        sprintf((char*)info_rpm, "rpm:%f,%f,%d\n", g_Motor1.rpm, g_Motor2.rpm, g_Motor1.pwm_duty);
+        g_Motor1.commutating_counter = 0;
+        if (xQueueSendToFront(xQueueSeriel, &info_rpm, 0) != pdPASS)
+        {
+            vPortFree(info_rpm); // 发送失败，释放内存
+        }
 
         HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
         vTaskDelay(pdMS_TO_TICKS(100));
