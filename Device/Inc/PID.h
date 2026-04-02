@@ -46,5 +46,15 @@ typedef struct {
 
 } AdvancedPID_TypeDef;
 
+// PID 函数声明
+void PID_Init(AdvancedPID_TypeDef* pid, float Kp, float Ki, float Kd, 
+              float outMax, float outMin);
+void PID_SetTarget(AdvancedPID_TypeDef* pid, float target);
+void PID_SetFeedback(AdvancedPID_TypeDef* pid, float feedback);
+void PID_Reset(AdvancedPID_TypeDef* pid);
+float PID_Calculate(AdvancedPID_TypeDef* pid);
+void PID_SetParams(AdvancedPID_TypeDef* pid, float Kp, float Ki, float Kd);
+float PID_GetError(AdvancedPID_TypeDef* pid);
+void PID_SetEnable(AdvancedPID_TypeDef* pid, uint8_t enable);
 
 #endif //MOTOR_PID_H

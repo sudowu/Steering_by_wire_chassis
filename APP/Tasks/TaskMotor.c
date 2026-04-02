@@ -18,8 +18,10 @@
 #include "usart.h"
 #include "cmsis_os2.h"
 #include "Filter.h"
+#include "PID.h"
 
 TaskHandle_t g_TaskMotor;
+TaskHandle_t g_TaskSpeedControl;  // 速度控制任务句柄
 SemaphoreHandle_t xSemaphoreADCReady;
 TimerHandle_t xTimerRPMRead;
 
@@ -31,17 +33,26 @@ void vTaskMotor(void* parameter)
     vTaskDelay(1000); // 等待 ADC 稳定
     Motor_OffsetCalibrate(&g_Motor1);
 
-    xTimerRPMRead = xTimerCreate("rpm_read", pdMS_TO_TICKS(100), pdTRUE, NULL, vTaskRPM_Read);
-    xTimerStart(xTimerRPMRead, 200);
+    xTimerRPMRead = xTimerCreate("rpm_read", pdMS_TO_TICKS(10), pdTRUE, NULL, vTaskRPM_Read);
+    xTimerStart(xTimerRPMRead, 10);
     hall_start(&g_Motor1);
     hall_start(&g_Motor2);
-    motor_start(&g_Motor1, 2, 70);
-    motor_start(&g_Motor2, 1, 70);
+    
+    // 初始化速度环 PID 控制器
+    // Kp=0.5, Ki=0.01, Kd=0.001
+    Motor_SpeedPID_Init(&g_Motor1, 0.2f, 0.02f, 0.001f);
+    Motor_SpeedPID_Init(&g_Motor2, 0.2f, 0.02f, 0.001f);
+    
+    // 创建速度控制任务
+    xTaskCreate(vTask_SpeedControl, "SpeedCtrl", 256, NULL, osPriorityNormal1, &g_TaskSpeedControl);
+    
+    Motor_Start(&g_Motor1, CCW, 75);
+    Motor_Start(&g_Motor2, CW, 75);
 
 
     while (1)
     {
-        vTaskDelay(pdMS_TO_TICKS(200)); // 每10ms执行一次，控制频率约为100Hz
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
 }
 
@@ -101,22 +112,22 @@ void vTask_ADC_Sample(void* parameter)
 
 void vTask_Data_Send(void* parameter)
 {
-    int i = 0;
-    int j = 0;
-    float rpm_ave = 0;
-    float rpm_buff[10] = {0};
+    // int i = 0;
+    // int j = 0;
+    // float rpm_ave = 0;
+    // float rpm_buff[10] = {0};
     while (1)
     {
-        rpm_buff[i++] = ((float)(g_Motor1.commutating_counter) * 50);
-        i %= 10;
-        for (j = 0; j < 10; j++)
-        {
-            rpm_ave += rpm_buff[j];
-        }
-        // g_Motor1.rpm = (rpm_ave / 10);
-        rpm_ave = 0;
+        // rpm_buff[i++] = ((float)(g_Motor1.commutating_counter) * 50);
+        // i %= 10;
+        // for (j = 0; j < 10; j++)
+        // {
+        //     rpm_ave += rpm_buff[j];
+        // }
+        // // g_Motor1.rpm = (rpm_ave / 10);
+        // rpm_ave = 0;
         uint8_t* info_rpm = pvPortMalloc(100);
-        sprintf((char*)info_rpm, "rpm:%f,%f,%d\n", g_Motor1.rpm, g_Motor2.rpm, g_Motor1.pwm_duty);
+        sprintf((char*)info_rpm, "rpm:%f,%f,%d,%d\n", g_Motor1.rpm, g_Motor2.rpm, g_Motor1.pwm_duty, g_Motor2.pwm_duty);
         g_Motor1.commutating_counter = 0;
         if (xQueueSendToFront(xQueueSeriel, &info_rpm, 0) != pdPASS)
         {
@@ -124,6 +135,36 @@ void vTask_Data_Send(void* parameter)
         }
 
         HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(30));
+    }
+}
+
+/**
+ * @brief 速度控制任务 - 使用 PID 闭环控制电机转速
+ * @param parameter 任务参数
+ */
+void vTask_SpeedControl(void* parameter)
+{
+    // 目标转速 (RPM)
+    float target_rpm_motor1 = 200.0f;  // 电机 1 目标转速：100 RPM
+    float target_rpm_motor2 = 200.0f;  // 电机 2 目标转速：100 RPM
+    
+    // 控制周期：10ms (100Hz)
+    const TickType_t xDelayTime = pdMS_TO_TICKS(10);
+    
+    while (1)
+    {
+        // 电机 1 速度闭环控制
+        // 正数表示顺时针，负数表示逆时针
+        Motor_SpeedControl(&g_Motor1, target_rpm_motor1);
+        
+        // 电机 2 速度闭环控制
+        Motor_SpeedControl(&g_Motor2, target_rpm_motor2);
+        
+        // 可选：获取当前速度误差用于调试
+        // float error1 = Motor_SpeedPID_GetError(&g_Motor1);
+        // float error2 = Motor_SpeedPID_GetError(&g_Motor2);
+        
+        vTaskDelay(xDelayTime);
     }
 }

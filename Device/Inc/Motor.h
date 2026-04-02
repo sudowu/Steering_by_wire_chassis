@@ -77,7 +77,6 @@ extern uint8_t ADC_DataReady; // ADC 数据就绪标志
 void motor_init();
 void hall_start(Motor_t* motor);
 void hall_state_read(Motor_t* motor);
-void motor_start(Motor_t* motor, uint8_t direction, uint16_t pwm_duty);
 void motor_commutating_phase_callback(Motor_t* motor);
 void MotorControl(const Motor_t* motor, const motor_pwm_config_t* config);
 void motor_rpm_read(Motor_t* motor);
@@ -85,5 +84,21 @@ void Motor_OffsetCalibration(Motor_t* motor);
 HAL_StatusTypeDef Motor_OffsetCalibrate(Motor_t* motor);
 HAL_StatusTypeDef Motor_ReadAdcCurrent(Motor_t* motor);
 float Motor_GetTotalCurrent(Motor_t* motor);
+
+/* 电机控制 API */
+HAL_StatusTypeDef Motor_SetDirection(Motor_t* motor, direction_t direction);
+HAL_StatusTypeDef Motor_SetDutyCycle(Motor_t* motor, uint16_t duty_cycle);
+HAL_StatusTypeDef Motor_Start(Motor_t* motor, direction_t direction, uint16_t duty_cycle);
+HAL_StatusTypeDef Motor_Stop(Motor_t* motor);
+direction_t Motor_GetDirection(Motor_t* motor);
+uint16_t Motor_GetDutyCycle(Motor_t* motor);
+uint8_t Motor_IsRunning(Motor_t* motor);
+
+/* 电机 PID 转速控制 API */
+void Motor_SpeedPID_Init(Motor_t* motor, float Kp, float Ki, float Kd);
+HAL_StatusTypeDef Motor_SpeedControl(Motor_t* motor, float target_rpm);
+void Motor_SpeedPID_SetParams(Motor_t* motor, float Kp, float Ki, float Kd);
+float Motor_SpeedPID_GetError(Motor_t* motor);
+void Motor_SpeedPID_Enable(Motor_t* motor, uint8_t enable);
 #endif //MOTOR_MOTOR_H
 
