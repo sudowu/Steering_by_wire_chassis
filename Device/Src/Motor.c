@@ -560,7 +560,7 @@ HAL_StatusTypeDef Motor_SpeedControl(Motor_t* motor, float target_rpm)
         direction_t start_dir = (target_rpm >= 0) ? CW : CCW;
 
         // 以较小的占空比启动电机
-        if (Motor_Start(motor, start_dir, 100) != HAL_OK)
+        if (Motor_Start(motor, start_dir, 70) != HAL_OK)
         {
             return HAL_ERROR;
         }
