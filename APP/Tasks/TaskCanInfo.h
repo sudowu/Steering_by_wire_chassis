@@ -12,7 +12,9 @@
 
 extern TaskHandle_t g_TaskCanInfo;
 extern QueueHandle_t canTxQueue; // CAN发送消息队列
+extern QueueHandle_t canRxQueue; // CAN接收消息队列
 extern SemaphoreHandle_t canTxCompleteSemaphore;
+
 typedef struct
 {
     uint32_t StdId; // 标准ID
@@ -20,9 +22,56 @@ typedef struct
     uint8_t Data[8]; // 数据内容
 } CAN_Message_t;
 
+/* ==================== CAN 应用层协议 ==================== */
+
+/* 底盘速度指令 ID */
+#define CAN_ID_CHASSIS_CMD         0x100
+
+/* 底盘状态上报 ID */
+#define CAN_ID_CHASSIS_STATUS      0x101
+
+/* 底盘速度指令格式 (ID 0x100, 8 bytes)
+ *  Byte[0-1]:  线速度 (int16, 单位: mm/s, scale 1)
+ *  Byte[2-3]:  角速度 (int16, 单位: mrad/s, scale 1)
+ *  Byte[4]:    控制标志
+ *    Bit 0:    使能 (1=电机通电, 0=断电)
+ *    Bit 1-7:  保留
+ *  Byte[5-7]:  保留
+ */
+
+/* 底盘状态上报格式 (ID 0x101, 8 bytes)
+ *  Byte[0-1]:  实际线速度 (int16, 单位: mm/s)
+ *  Byte[2-3]:  实际角速度 (int16, 单位: mrad/s)
+ *  Byte[4]:    状态标志
+ *    Bit 0:    左电机运行状态
+ *    Bit 1:    右电机运行状态
+ *    Bit 2:    左电机故障
+ *    Bit 3:    右电机故障
+ *  Byte[5]:    左电机电流 (uint8, 0.1A/LSB)
+ *  Byte[6]:    右电机电流 (uint8, 0.1A/LSB)
+ *  Byte[7]:    保留
+ */
+
+/* 底盘控制命令标志位 */
+#define CHASSIS_FLAG_ENABLE        0x01
+
+/**
+ * @brief 解析后的底盘速度指令
+ */
+typedef struct {
+    float linear_velocity;   // 目标线速度 (m/s)
+    float angular_velocity;  // 目标角速度 (rad/s)
+    uint8_t enable;          // 使能标志
+    uint32_t timestamp;      // 最后接收时间戳 (HAL_GetTick())
+} ChassisCommand_t;
+
+/* 底盘命令全局变量（由 CAN RX 更新，由控制任务读取）*/
+extern ChassisCommand_t g_chassis_cmd;
+
+/* ==================== 函数声明 ==================== */
 
 void vTaskCanInfo(void* param);
 HAL_StatusTypeDef CAN_Send_HAL(CAN_Message_t* message);
-
+void CAN_ProcessRxMessage(const CAN_Message_t* msg);
 
 #endif //MOTOR_TASKCANINFO_H

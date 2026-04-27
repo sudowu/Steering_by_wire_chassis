@@ -208,6 +208,20 @@ void CAN1_TX_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles CAN1 RX0 interrupts.
+  */
+void CAN1_RX0_IRQHandler(void)
+{
+  /* USER CODE BEGIN CAN1_RX0_IRQn 0 */
+
+  /* USER CODE END CAN1_RX0_IRQn 0 */
+  HAL_CAN_IRQHandler(&hcan1);
+  /* USER CODE BEGIN CAN1_RX0_IRQn 1 */
+
+  /* USER CODE END CAN1_RX0_IRQn 1 */
+}
+
+/**
   * @brief This function handles TIM1 update interrupt and TIM10 global interrupt.
   */
 void TIM1_UP_TIM10_IRQHandler(void)
@@ -381,6 +395,33 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   {
     // HAL_GPIO_TogglePin(BEEP_GPIO_Port, BEEP_Pin);
   }
+}
+/**
+ * @brief CAN RX FIFO 0 消息接收回调（中断上下文）
+ */
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+  if (hcan->Instance != CAN1)
+    return;
+
+  CAN_RxHeaderTypeDef rxHeader;
+  uint8_t rxData[8];
+
+  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rxHeader, rxData) != HAL_OK)
+    return;
+
+  /* 动态分配消息结构，通过队列发送到任务 */
+  CAN_Message_t* msg = pvPortMalloc(sizeof(CAN_Message_t));
+  if (msg == NULL)
+    return;
+
+  msg->StdId = rxHeader.StdId;
+  msg->Len   = rxHeader.DLC;
+  memcpy(msg->Data, rxData, 8);
+
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  xQueueSendFromISR(canRxQueue, &msg, &xHigherPriorityTaskWoken);
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 /* USER CODE END 1 */

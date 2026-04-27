@@ -94,6 +94,8 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     /* CAN1 interrupt Init */
     HAL_NVIC_SetPriority(CAN1_TX_IRQn, 7, 0);
     HAL_NVIC_EnableIRQ(CAN1_TX_IRQn);
+    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 7, 0);
+    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
   /* USER CODE BEGIN CAN1_MspInit 1 */
 
   /* USER CODE END CAN1_MspInit 1 */
@@ -121,6 +123,7 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 
     /* CAN1 interrupt Deinit */
     HAL_NVIC_DisableIRQ(CAN1_TX_IRQn);
+    HAL_NVIC_DisableIRQ(CAN1_RX0_IRQn);
   /* USER CODE BEGIN CAN1_MspDeInit 1 */
 
   /* USER CODE END CAN1_MspDeInit 1 */
@@ -128,5 +131,24 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 }
 
 /* USER CODE BEGIN 1 */
+
+/**
+ * @brief 配置 CAN 滤波器，接收所有标准 ID 报文
+ */
+void CAN_Filter_Config(void)
+{
+    CAN_FilterTypeDef filter = {0};
+    filter.FilterIdHigh     = 0;
+    filter.FilterIdLow      = 0;
+    filter.FilterMaskIdHigh = 0;
+    filter.FilterMaskIdLow  = 0;
+    filter.FilterFIFOAssignment = CAN_RX_FIFO0;
+    filter.FilterBank       = 0;
+    filter.FilterMode       = CAN_FILTERMODE_IDMASK;
+    filter.FilterScale      = CAN_FILTERSCALE_32BIT;
+    filter.FilterActivation = ENABLE;
+    HAL_CAN_ConfigFilter(&hcan1, &filter);
+}
+
 
 /* USER CODE END 1 */
