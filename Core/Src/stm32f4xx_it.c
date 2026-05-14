@@ -300,6 +300,14 @@ void DMA2_Stream0_IRQHandler(void)
 
   /* USER CODE END DMA2_Stream0_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_adc1);
+  
+  // DMA传输完成，给出信号量
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  if (xSemaphoreADCReady != NULL)
+  {
+    xSemaphoreGiveFromISR(xSemaphoreADCReady, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+  }
   /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
 
   /* USER CODE END DMA2_Stream0_IRQn 1 */
@@ -369,9 +377,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
   if (hadc->Instance == ADC1)
   {
     ADC_DataReady = 1;
-    if (xSemaphoreADCReady != NULL)
-      xSemaphoreGiveFromISR(xSemaphoreADCReady, NULL);
-
   }
 }
 

@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Steering_by_wire_chassis.iml" filepath="$PROJECT_DIR$/.idea/Steering_by_wire_chassis.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/motor.iml" filepath="$PROJECT_DIR$/.idea/motor.iml" />
     </modules>
   </component>

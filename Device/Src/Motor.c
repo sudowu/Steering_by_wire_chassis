@@ -7,9 +7,11 @@
 #include <math.h>
 
 #include "tim.h"
+#include "semphr.h"
 
 uint16_t ADC_Buffer[ADC_SAMPLE_GROUP][ADC_CHANNELS] = {0}; // ADC DMA 缓冲区
-uint8_t ADC_DataReady = 0;
+volatile uint8_t ADC_DataReady = 0;
+SemaphoreHandle_t xSemaphoreADCReady = NULL; // ADC信号量，用于替代轮询
 
 
 Motor_t g_Motor1 = {
@@ -40,10 +42,41 @@ const motor_pwm_config_t motor_pwm_configs[6] = {
     {TIM_CHANNEL_3, 1} // 霍尔状态0b110
 };
 
+// 电机GPIO配置表 - 解决代码重复问题
+typedef struct {
+    GPIO_TypeDef* PWM_UL_Port; uint16_t PWM_UL_Pin;
+    GPIO_TypeDef* PWM_VL_Port; uint16_t PWM_VL_Pin;
+    GPIO_TypeDef* PWM_WL_Port; uint16_t PWM_WL_Pin;
+    GPIO_TypeDef* CTRL_SD_Port; uint16_t CTRL_SD_Pin;
+} MotorGPIO_Config_t;
+
+static const MotorGPIO_Config_t motor_gpio_configs[2] = {
+    // Motor 1
+    {
+        PM1_PWM_UL_GPIO_Port, PM1_PWM_UL_Pin,
+        PM1_PWM_VL_GPIO_Port, PM1_PWM_VL_Pin,
+        PM1_PWM_WL_GPIO_Port, PM1_PWM_WL_Pin,
+        PM1_CTRL_SD_GPIO_Port, PM1_CTRL_SD_Pin
+    },
+    // Motor 2
+    {
+        PM2_PWM_UL_GPIO_Port, PM2_PWM_UL_Pin,
+        PM2_PWM_VL_GPIO_Port, PM2_PWM_VL_Pin,
+        PM2_PWM_WL_GPIO_Port, PM2_PWM_WL_Pin,
+        PM2_CTRL_SD_GPIO_Port, PM2_CTRL_SD_Pin
+    }
+};
+
+// ADC校准等待超时(ms)
+#define ADC_CALIBRATION_TIMEOUT_MS  1000
+#define ADC_READ_TIMEOUT_MS        10
+
 
 void motor_init()
 {
-    // 这里可以添加电机初始化的代码，例如配置GPIO、定时器等
+    // 创建ADC信号量
+    xSemaphoreADCReady = xSemaphoreCreateBinary();
+    
     // 初始化电机1
     g_Motor1.id = MOTOR1;
     g_Motor1.htim = &htim1; // 关联定时器1
@@ -54,6 +87,7 @@ void motor_init()
     g_Motor1.run_state = 0;
     g_Motor1.commutating_counter = 0;
     g_Motor1.last_encoder_count = 0;
+    
     // 初始化电机2
     g_Motor2.id = MOTOR2;
     g_Motor2.htim = &htim8; // 关联定时器8
@@ -88,23 +122,36 @@ void motor_rpm_read(Motor_t* motor)
 HAL_StatusTypeDef Motor_OffsetCalibrate(Motor_t* motor)
 {
     uint32_t sum_u = 0, sum_v = 0, sum_w = 0;
+    TickType_t timeout;
+    
     // 确保电机处于停止状态
     if (motor->run_state != 0)
     {
         return HAL_ERROR; // 电机运行中，不能校准
     }
+    
     // 等待 ADC 启动完成
-    while (ADC_DataReady != 1)
+    if (xSemaphoreADCReady == NULL)
     {
+        return HAL_ERROR;
     }
+    
+    // 等待初始数据就绪
+    timeout = pdMS_TO_TICKS(ADC_CALIBRATION_TIMEOUT_MS);
+    if (xSemaphoreTake(xSemaphoreADCReady, timeout) != pdTRUE)
+    {
+        return HAL_TIMEOUT;
+    }
+    
     // 读取多组数据求平均
     for (int i = 0; i < ADC_OFFSET_SAMPLES; i++)
     {
         // 等待数据就绪
-        while (ADC_DataReady != 1)
+        if (xSemaphoreTake(xSemaphoreADCReady, timeout) != pdTRUE)
         {
+            return HAL_TIMEOUT;
         }
-        ADC_DataReady = 0;
+        
         // 累加当前值 (使用循环缓冲区)
         for (int j = 0; j < ADC_SAMPLE_GROUP; j++)
         {
@@ -113,8 +160,9 @@ HAL_StatusTypeDef Motor_OffsetCalibrate(Motor_t* motor)
             sum_w += ADC_Buffer[j][2];
         }
     }
+    
     // 计算平均值作为偏置
-    motor->adc_current.adc_offset_u = (float)sum_u / (ADC_OFFSET_SAMPLES * ADC_SAMPLE_GROUP); // 转换为电压值
+    motor->adc_current.adc_offset_u = (float)sum_u / (ADC_OFFSET_SAMPLES * ADC_SAMPLE_GROUP);
     motor->adc_current.adc_offset_v = (float)sum_v / (ADC_OFFSET_SAMPLES * ADC_SAMPLE_GROUP);
     motor->adc_current.adc_offset_w = (float)sum_w / (ADC_OFFSET_SAMPLES * ADC_SAMPLE_GROUP);
     motor->adc_current.offset_calibrated = 1; // 标记已校准
@@ -134,15 +182,24 @@ float Motor_GetTotalCurrent(Motor_t* motor)
 HAL_StatusTypeDef Motor_ReadAdcCurrent(Motor_t* motor)
 {
     uint32_t sum_u = 0, sum_v = 0, sum_w = 0;
+    TickType_t timeout = pdMS_TO_TICKS(ADC_READ_TIMEOUT_MS);
+    
     if (motor->adc_current.offset_calibrated == 0)
     {
         return HAL_ERROR; // 偏置未校准，无法读取电流
     }
-    // 等待 ADC 启动完成
-    while (ADC_DataReady != 1)
+    
+    // 等待ADC数据就绪，使用信号量替代轮询
+    if (xSemaphoreADCReady == NULL)
     {
+        return HAL_ERROR;
     }
-    ADC_DataReady = 0;
+    
+    if (xSemaphoreTake(xSemaphoreADCReady, timeout) != pdTRUE)
+    {
+        return HAL_TIMEOUT;
+    }
+    
     // 读取当前值 (使用循环缓冲区的最新数据)
     for (int j = 0; j < ADC_SAMPLE_GROUP; j++)
     {
@@ -216,55 +273,44 @@ void motor_commutating_phase_callback(Motor_t* motor)
 
 void MotorControl(const Motor_t* motor, const motor_pwm_config_t* config)
 {
+    const MotorGPIO_Config_t* gpio_cfg = &motor_gpio_configs[motor->id];
+    uint32_t bsrr_reset = 0;
+    uint32_t bsrr_set = 0;
+    
+    // 清除所有通道
     __HAL_TIM_SET_COMPARE(motor->htim, TIM_CHANNEL_1, 0);
     __HAL_TIM_SET_COMPARE(motor->htim, TIM_CHANNEL_2, 0);
     __HAL_TIM_SET_COMPARE(motor->htim, TIM_CHANNEL_3, 0);
-    if (motor->id == MOTOR1)
+    
+    // 根据下桥臂通道设置GPIO，使用原子操作
+    switch (config->l_on_channel)
     {
-        switch (config->l_on_channel)
-        {
-        case 1:
-            HAL_GPIO_WritePin(PM1_PWM_UL_GPIO_Port, PM1_PWM_UL_Pin, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(PM1_PWM_VL_GPIO_Port,PM1_PWM_VL_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(PM1_PWM_WL_GPIO_Port,PM1_PWM_WL_Pin, GPIO_PIN_RESET);
-            break;
-        case 2:
-            HAL_GPIO_WritePin(PM1_PWM_UL_GPIO_Port, PM1_PWM_UL_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(PM1_PWM_VL_GPIO_Port,PM1_PWM_VL_Pin, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(PM1_PWM_WL_GPIO_Port,PM1_PWM_WL_Pin, GPIO_PIN_RESET);
-            break;
-        case 3:
-            HAL_GPIO_WritePin(PM1_PWM_UL_GPIO_Port, PM1_PWM_UL_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(PM1_PWM_VL_GPIO_Port,PM1_PWM_VL_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(PM1_PWM_WL_GPIO_Port,PM1_PWM_WL_Pin, GPIO_PIN_SET);
-            break;
-        default:
-            break;
-        }
+    case 1: // U相下桥臂导通
+        bsrr_set = gpio_cfg->PWM_UL_Pin;
+        bsrr_reset = gpio_cfg->PWM_VL_Pin | gpio_cfg->PWM_WL_Pin;
+        break;
+    case 2: // V相下桥臂导通
+        bsrr_set = gpio_cfg->PWM_VL_Pin;
+        bsrr_reset = gpio_cfg->PWM_UL_Pin | gpio_cfg->PWM_WL_Pin;
+        break;
+    case 3: // W相下桥臂导通
+        bsrr_set = gpio_cfg->PWM_WL_Pin;
+        bsrr_reset = gpio_cfg->PWM_UL_Pin | gpio_cfg->PWM_VL_Pin;
+        break;
+    default:
+        bsrr_reset = gpio_cfg->PWM_UL_Pin | gpio_cfg->PWM_VL_Pin | gpio_cfg->PWM_WL_Pin;
+        break;
     }
-    else if (motor->id == MOTOR2)
-    {
-        switch (config->l_on_channel)
-        {
-        case 1:
-            HAL_GPIO_WritePin(PM2_PWM_UL_GPIO_Port, PM2_PWM_UL_Pin, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(PM2_PWM_VL_GPIO_Port,PM2_PWM_VL_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(PM2_PWM_WL_GPIO_Port,PM2_PWM_WL_Pin, GPIO_PIN_RESET);
-            break;
-        case 2:
-            HAL_GPIO_WritePin(PM2_PWM_UL_GPIO_Port, PM2_PWM_UL_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(PM2_PWM_VL_GPIO_Port,PM2_PWM_VL_Pin, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(PM2_PWM_WL_GPIO_Port,PM2_PWM_WL_Pin, GPIO_PIN_RESET);
-            break;
-        case 3:
-            HAL_GPIO_WritePin(PM2_PWM_UL_GPIO_Port, PM2_PWM_UL_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(PM2_PWM_VL_GPIO_Port,PM2_PWM_VL_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(PM2_PWM_WL_GPIO_Port,PM2_PWM_WL_Pin, GPIO_PIN_SET);
-            break;
-        default:
-            break;
-        }
-    }
+    
+    // 原子操作：先设置再清除，避免毛刺
+    gpio_cfg->PWM_UL_Port->BSRR = bsrr_set;
+    gpio_cfg->PWM_VL_Port->BSRR = bsrr_set;
+    gpio_cfg->PWM_WL_Port->BSRR = bsrr_set;
+    gpio_cfg->PWM_UL_Port->BSRR = bsrr_reset << 16;
+    gpio_cfg->PWM_VL_Port->BSRR = bsrr_reset << 16;
+    gpio_cfg->PWM_WL_Port->BSRR = bsrr_reset << 16;
+    
+    // 设置PWM输出
     __HAL_TIM_SET_COMPARE(motor->htim, config->h_pwm_channel, motor->pwm_duty);
 }
 
@@ -310,9 +356,9 @@ HAL_StatusTypeDef Motor_SetDirection(Motor_t* motor, direction_t direction)
         // 如果新方向不是停止，则重新启动电机
         if (direction != STOP)
         {
-            // 短暂延时确保电机完全停止
-            for(volatile int i = 0; i < 1000; i++);
-
+            // 使用RTOS延时确保电机完全停止
+            vTaskDelay(pdMS_TO_TICKS(10));
+            
             // 重新启动电机
             Motor_Start(motor, direction, current_duty);
         }
@@ -356,14 +402,7 @@ HAL_StatusTypeDef Motor_SetDutyCycle(Motor_t* motor, uint16_t duty_cycle)
     // 如果电机正在运行，立即更新 PWM 输出
     if (motor->run_state == 1 && motor->hall_state >= 1 && motor->hall_state <= 6)
     {
-        // 清除所有通道
-        __HAL_TIM_SET_COMPARE(motor->htim, TIM_CHANNEL_1, 0);
-        __HAL_TIM_SET_COMPARE(motor->htim, TIM_CHANNEL_2, 0);
-        __HAL_TIM_SET_COMPARE(motor->htim, TIM_CHANNEL_3, 0);
-
-        // 设置当前霍尔状态对应的通道占空比
-        uint8_t channel = motor_pwm_configs[motor->hall_state - 1].h_pwm_channel;
-        __HAL_TIM_SET_COMPARE(motor->htim, channel, motor->pwm_duty);
+        MotorControl(motor, &motor_pwm_configs[motor->hall_state - 1]);
     }
 
     return HAL_OK;
@@ -413,21 +452,12 @@ HAL_StatusTypeDef Motor_Start(Motor_t* motor, direction_t direction, uint16_t du
     HAL_TIM_PWM_Start(motor->htim, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(motor->htim, TIM_CHANNEL_3);
 
-    // 使能驱动芯片
-    if (motor->id == MOTOR1)
-    {
-        HAL_GPIO_WritePin(PM1_CTRL_SD_GPIO_Port, PM1_CTRL_SD_Pin, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(PM1_PWM_UL_GPIO_Port, PM1_PWM_UL_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(PM1_PWM_VL_GPIO_Port, PM1_PWM_VL_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(PM1_PWM_WL_GPIO_Port, PM1_PWM_WL_Pin, GPIO_PIN_RESET);
-    }
-    else if (motor->id == MOTOR2)
-    {
-        HAL_GPIO_WritePin(PM2_CTRL_SD_GPIO_Port, PM2_CTRL_SD_Pin, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(PM2_PWM_UL_GPIO_Port, PM2_PWM_UL_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(PM2_PWM_VL_GPIO_Port, PM2_PWM_VL_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(PM2_PWM_WL_GPIO_Port, PM2_PWM_WL_Pin, GPIO_PIN_RESET);
-    }
+    // 使能驱动芯片，使用GPIO配置表
+    const MotorGPIO_Config_t* gpio_cfg = &motor_gpio_configs[motor->id];
+    HAL_GPIO_WritePin(gpio_cfg->CTRL_SD_Port, gpio_cfg->CTRL_SD_Pin, GPIO_PIN_SET);
+    
+    // 关闭所有下桥臂
+    gpio_cfg->PWM_UL_Port->BSRR = (gpio_cfg->PWM_UL_Pin | gpio_cfg->PWM_VL_Pin | gpio_cfg->PWM_WL_Pin) << 16;
 
     MotorControl(motor, &motor_pwm_configs[motor->hall_state - 1]);
 
@@ -458,19 +488,9 @@ HAL_StatusTypeDef Motor_Stop(Motor_t* motor)
     HAL_TIM_PWM_Stop(motor->htim, TIM_CHANNEL_2);
     HAL_TIM_PWM_Stop(motor->htim, TIM_CHANNEL_3);
 
-    // 关闭驱动芯片下桥臂
-    if (motor->id == MOTOR1)
-    {
-        HAL_GPIO_WritePin(PM1_PWM_UL_GPIO_Port, PM1_PWM_UL_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(PM1_PWM_VL_GPIO_Port, PM1_PWM_VL_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(PM1_PWM_WL_GPIO_Port, PM1_PWM_WL_Pin, GPIO_PIN_RESET);
-    }
-    else if (motor->id == MOTOR2)
-    {
-        HAL_GPIO_WritePin(PM2_PWM_UL_GPIO_Port, PM2_PWM_UL_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(PM2_PWM_VL_GPIO_Port, PM2_PWM_VL_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(PM2_PWM_WL_GPIO_Port, PM2_PWM_WL_Pin, GPIO_PIN_RESET);
-    }
+    // 关闭驱动芯片下桥臂，使用GPIO配置表
+    const MotorGPIO_Config_t* gpio_cfg = &motor_gpio_configs[motor->id];
+    gpio_cfg->PWM_UL_Port->BSRR = (gpio_cfg->PWM_UL_Pin | gpio_cfg->PWM_VL_Pin | gpio_cfg->PWM_WL_Pin) << 16;
 
     return HAL_OK;
 }

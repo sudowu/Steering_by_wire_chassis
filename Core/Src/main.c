@@ -25,6 +25,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "iwdg.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -39,6 +40,9 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+// 看门狗配置
+#define IWDG_TIMEOUT_MS  1000  // 看门狗超时时间
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,6 +51,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+IWDG_HandleTypeDef hiwdg;
 
 /* USER CODE BEGIN PV */
 
@@ -55,12 +60,29 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
+void MX_IWDG_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+/**
+ * @brief 独立看门狗初始化
+ * @note LSI = 32kHz, 预分频 = 256, 重装载值 = 125
+ *       超时时间 = (1/32000) * 256 * 125 ≈ 1s
+ */
+void MX_IWDG_Init(void)
+{
+    hiwdg.Instance = IWDG;
+    hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+    hiwdg.Init.Reload = 125;  // 32kHz / 256 / 125 ≈ 1s
+    if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -108,6 +130,7 @@ int main(void)
   /* USER CODE END 2 */
 
   /* Init scheduler */
+  MX_IWDG_Init();  // 初始化看门狗
   osKernelInitialize();  /* Call init function for freertos objects (in cmsis_os2.c) */
   MX_FREERTOS_Init();
 

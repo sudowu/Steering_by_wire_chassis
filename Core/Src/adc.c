@@ -147,7 +147,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
   /* USER CODE BEGIN ADC1_MspInit 1 */
     __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_EOC);
     /* 使能 DMA 传输完成中断 */
-    // __HAL_DMA_ENABLE_IT(&hdma_adc1, DMA_IT_TC);
+    __HAL_DMA_ENABLE_IT(&hdma_adc1, DMA_IT_TC);
   /* USER CODE END ADC1_MspInit 1 */
   }
 }

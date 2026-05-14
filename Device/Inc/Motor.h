@@ -4,7 +4,10 @@
 
 #ifndef MOTOR_MOTOR_H
 #define MOTOR_MOTOR_H
+
 #include "main.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
 #include "PID.h"
 
 // ADC 缓冲区 (DMA 循环模式)
@@ -72,7 +75,8 @@ typedef struct
 extern Motor_t g_Motor1;
 extern Motor_t g_Motor2;
 extern uint16_t ADC_Buffer[ADC_SAMPLE_GROUP][ADC_CHANNELS]; // ADC DMA 缓冲区
-extern uint8_t ADC_DataReady; // ADC 数据就绪标志
+extern volatile uint8_t ADC_DataReady; // ADC 数据就绪标志
+extern SemaphoreHandle_t xSemaphoreADCReady; // ADC信号量
 
 void motor_init();
 void hall_start(Motor_t* motor);

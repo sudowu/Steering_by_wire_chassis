@@ -19,10 +19,13 @@
 #include "cmsis_os2.h"
 #include "Filter.h"
 #include "PID.h"
+#include "iwdg.h"
+
+extern IWDG_HandleTypeDef hiwdg;
 
 TaskHandle_t g_TaskMotor;
 TaskHandle_t g_TaskSpeedControl;  // 速度控制任务句柄
-SemaphoreHandle_t xSemaphoreADCReady;
+extern SemaphoreHandle_t xSemaphoreADCReady;  // 使用 Motor.c 中定义的信号量
 TimerHandle_t xTimerRPMRead;
 
 void vTaskMotor(void* parameter)
@@ -43,8 +46,8 @@ void vTaskMotor(void* parameter)
     Motor_SpeedPID_Init(&g_Motor1, 0.2f, 0.02f, 0.001f);
     Motor_SpeedPID_Init(&g_Motor2, 0.2f, 0.02f, 0.001f);
     
-    // 创建速度控制任务
-    xTaskCreate(vTask_SpeedControl, "SpeedCtrl", 256, NULL, osPriorityNormal1, &g_TaskSpeedControl);
+    // 创建速度控制任务，使用标准优先级 osPriorityAboveNormal
+    xTaskCreate(vTask_SpeedControl, "SpeedCtrl", 256, NULL, osPriorityAboveNormal, &g_TaskSpeedControl);
     
     Motor_Start(&g_Motor1, CCW, 75);
     Motor_Start(&g_Motor2, CW, 75);
@@ -52,6 +55,7 @@ void vTaskMotor(void* parameter)
 
     while (1)
     {
+        HAL_IWDG_Refresh(&hiwdg);  // 喂狗
         vTaskDelay(pdMS_TO_TICKS(200));
     }
 }
@@ -73,7 +77,6 @@ void vTask_ADC_Sample(void* parameter)
     MedianFilter3 current_median = {0}; // 初始化中值滤波器状态
     lpf_init(&current_lpf, 0.3f); // 设置滤波系数，0.1表示较强的滤波效果，实际应用中可以调整这个
 
-    xSemaphoreADCReady = xSemaphoreCreateBinary();
     while (1)
     {
         xSemaphoreTake(xSemaphoreADCReady, portMAX_DELAY);
@@ -126,13 +129,16 @@ void vTask_Data_Send(void* parameter)
         // }
         // // g_Motor1.rpm = (rpm_ave / 10);
         // rpm_ave = 0;
-        uint8_t* info_rpm = pvPortMalloc(100);
-        sprintf((char*)info_rpm, "rpm:%f,%f,%d,%d\n", g_Motor1.rpm, g_Motor2.rpm, g_Motor1.pwm_duty, g_Motor2.pwm_duty);
-        g_Motor1.commutating_counter = 0;
-        if (xQueueSendToFront(xQueueSeriel, &info_rpm, 0) != pdPASS)
+        
+        // 使用静态缓冲区发送数据
+        SerialTxBuf_t* tx_buf = Serial_GetFreeTxBuf();
+        if (tx_buf != NULL)
         {
-            vPortFree(info_rpm); // 发送失败，释放内存
+            tx_buf->len = snprintf((char*)tx_buf->data, sizeof(tx_buf->data), 
+                "rpm:%f,%f,%d,%d\n", g_Motor1.rpm, g_Motor2.rpm, g_Motor1.pwm_duty, g_Motor2.pwm_duty);
+            xQueueSend(xQueueSeriel, &tx_buf, 0);
         }
+        g_Motor1.commutating_counter = 0;
 
         HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
         vTaskDelay(pdMS_TO_TICKS(30));
