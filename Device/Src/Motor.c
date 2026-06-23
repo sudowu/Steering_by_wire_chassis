@@ -15,6 +15,7 @@ uint8_t ADC_DataReady = 0;
 Motor_t g_Motor1 = {
     .id = MOTOR1,
     .direction = 0,
+    .forward_direction = CCW,
     .hall_state = 0,
     .pwm_duty = 0,
     .run_state = 0,
@@ -24,6 +25,7 @@ Motor_t g_Motor1 = {
 Motor_t g_Motor2 = {
     .id = MOTOR2,
     .direction = 0,
+    .forward_direction = CW,
     .hall_state = 0,
     .pwm_duty = 0,
     .run_state = 0,
@@ -49,6 +51,7 @@ void motor_init()
     g_Motor1.htim = &htim1; // 关联定时器1
     g_Motor1.encoder = &htim3; // 编码器定时器
     g_Motor1.direction = 0;
+    g_Motor1.forward_direction = CCW;
     g_Motor1.hall_state = 0;
     g_Motor1.pwm_duty = 0;
     g_Motor1.run_state = 0;
@@ -59,6 +62,7 @@ void motor_init()
     g_Motor2.htim = &htim8; // 关联定时器8
     g_Motor2.encoder = &htim2; // 编码器定时器
     g_Motor2.direction = 0;
+    g_Motor2.forward_direction = CW;
     g_Motor2.hall_state = 0;
     g_Motor2.pwm_duty = 0;
     g_Motor2.run_state = 0;
@@ -557,7 +561,7 @@ HAL_StatusTypeDef Motor_SpeedControl(Motor_t* motor, float target_rpm)
     if (!Motor_IsRunning(motor))
     {
         // 确定启动方向
-        direction_t start_dir = (target_rpm >= 0) ? CW : CCW;
+        direction_t start_dir = (target_rpm >= 0) ? motor->forward_direction : (motor->forward_direction == CW ? CCW : CW);
 
         // 以较小的占空比启动电机
         if (Motor_Start(motor, start_dir, 70) != HAL_OK)
@@ -567,7 +571,7 @@ HAL_StatusTypeDef Motor_SpeedControl(Motor_t* motor, float target_rpm)
     }
 
     // 更新反馈速度 (使用绝对值)
-    float feedback_rpm = (motor->direction == CCW) ? -motor->rpm : motor->rpm;
+    float feedback_rpm = (motor->direction == motor->forward_direction) ? motor->rpm : -motor->rpm;
     PID_SetFeedback(&motor->pid, feedback_rpm);
 
     // 设置目标速度 (使用绝对值)

@@ -59,6 +59,7 @@ typedef struct
     TIM_HandleTypeDef* encoder; // 关联的编码器定时器句柄
     uint8_t run_state; // 运行状态：0-停止，1-运行
     direction_t direction; // 方向：0-停止，1-顺时针，2-逆时针
+    direction_t forward_direction; // 前进时的旋转方向（电机1为CCW，电机2为CW）
     direction_t encoder_direction; // 编码器方向：0-正转，1-反转
     uint8_t hall_state; // 霍尔状态，范围0-7
     uint16_t pwm_duty; // PWM占空比，范围0-1000
