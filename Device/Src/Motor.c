@@ -67,7 +67,7 @@ void motor_init()
 }
 
 
-void motor_rpm_read(Motor_t* motor)
+void motor_rpm_get(Motor_t* motor)
 {
     // 这里可以添加读取电机转速的代码，例如通过编码器或霍尔传感器计算转速
     // 计算转速并更新 motor->rpm 字段
@@ -127,8 +127,8 @@ float Motor_GetTotalCurrent(Motor_t* motor)
     float iv = motor->adc_current.adc_current_v;
     float iw = motor->adc_current.adc_current_w;
 
-    // 矢量合成法计算总电流有效值
-    return sqrtf(iu * iu + iv * iv + iw * iw);
+    // 两导通相平均 → DC 母线电流幅值
+    return (fabsf(iu) + fabsf(iv) + fabsf(iw)) / 2.0f;
 }
 
 HAL_StatusTypeDef Motor_ReadAdcCurrent(Motor_t* motor)

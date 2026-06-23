@@ -19,6 +19,8 @@
 #include "cmsis_os2.h"
 #include "Filter.h"
 #include "PID.h"
+#include "Chassis.h"
+#include "TaskCanInfo.h"
 
 TaskHandle_t g_TaskMotor;
 TaskHandle_t g_TaskSpeedControl;  // 速度控制任务句柄
@@ -29,26 +31,23 @@ void vTaskMotor(void* parameter)
 {
     motor_init();
 
+    // 底盘初始化：绑定左右电机（先于一切电机操作，一次性确定映射）
+    Chassis_Init(&g_chassis, &g_Motor2, &g_Motor1);
+
     HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC_Buffer, ADC_BUFFER_SIZE);
     vTaskDelay(1000); // 等待 ADC 稳定
-    Motor_OffsetCalibrate(&g_Motor1);
+    Motor_OffsetCalibrate(g_chassis.motor_right);
 
-    xTimerRPMRead = xTimerCreate("rpm_read", pdMS_TO_TICKS(10), pdTRUE, NULL, vTaskRPM_Read);
+    xTimerRPMRead = xTimerCreate("rpm_get", pdMS_TO_TICKS(10), pdTRUE, NULL, vTaskRPM_Get);
     xTimerStart(xTimerRPMRead, 10);
-    hall_start(&g_Motor1);
-    hall_start(&g_Motor2);
-    
-    // 初始化速度环 PID 控制器
-    // Kp=0.5, Ki=0.01, Kd=0.001
-    Motor_SpeedPID_Init(&g_Motor1, 0.2f, 0.02f, 0.001f);
-    Motor_SpeedPID_Init(&g_Motor2, 0.2f, 0.02f, 0.001f);
-    
+    hall_start(g_chassis.motor_left);
+    hall_start(g_chassis.motor_right);
+
+    Motor_SpeedPID_Init(g_chassis.motor_left,  0.2f, 0.02f, 0.001f);
+    Motor_SpeedPID_Init(g_chassis.motor_right, 0.2f, 0.02f, 0.001f);
+
     // 创建速度控制任务
     xTaskCreate(vTask_SpeedControl, "SpeedCtrl", 256, NULL, osPriorityNormal1, &g_TaskSpeedControl);
-    
-    Motor_Start(&g_Motor1, CCW, 75);
-    Motor_Start(&g_Motor2, CW, 75);
-
 
     while (1)
     {
@@ -57,10 +56,10 @@ void vTaskMotor(void* parameter)
 }
 
 
-void vTaskRPM_Read(TimerHandle_t xTimer)
+void vTaskRPM_Get(TimerHandle_t xTimer)
 {
-    motor_rpm_read(&g_Motor1);
-    motor_rpm_read(&g_Motor2);
+    motor_rpm_get(g_chassis.motor_left);
+    motor_rpm_get(g_chassis.motor_right);
     HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
 }
 
@@ -127,7 +126,9 @@ void vTask_Data_Send(void* parameter)
         // // g_Motor1.rpm = (rpm_ave / 10);
         // rpm_ave = 0;
         uint8_t* info_rpm = pvPortMalloc(100);
-        sprintf((char*)info_rpm, "rpm:%f,%f,%d,%d\n", g_Motor1.rpm, g_Motor2.rpm, g_Motor1.pwm_duty, g_Motor2.pwm_duty);
+        sprintf((char*)info_rpm, "rpm:%f,%f,%d,%d\n",
+                g_chassis.motor_left->rpm, g_chassis.motor_right->rpm,
+                g_chassis.motor_left->pwm_duty, g_chassis.motor_right->pwm_duty);
         g_Motor1.commutating_counter = 0;
         if (xQueueSendToFront(xQueueSeriel, &info_rpm, 0) != pdPASS)
         {
@@ -140,31 +141,17 @@ void vTask_Data_Send(void* parameter)
 }
 
 /**
- * @brief 速度控制任务 - 使用 PID 闭环控制电机转速
+ * @brief 速度控制任务 - 100Hz 底盘闭环控制
  * @param parameter 任务参数
  */
 void vTask_SpeedControl(void* parameter)
 {
-    // 目标转速 (RPM)
-    float target_rpm_motor1 = 200.0f;  // 电机 1 目标转速：100 RPM
-    float target_rpm_motor2 = 200.0f;  // 电机 2 目标转速：100 RPM
-    
-    // 控制周期：10ms (100Hz)
     const TickType_t xDelayTime = pdMS_TO_TICKS(10);
-    
+
     while (1)
     {
-        // 电机 1 速度闭环控制
-        // 正数表示顺时针，负数表示逆时针
-        Motor_SpeedControl(&g_Motor1, target_rpm_motor1);
-        
-        // 电机 2 速度闭环控制
-        Motor_SpeedControl(&g_Motor2, target_rpm_motor2);
-        
-        // 可选：获取当前速度误差用于调试
-        // float error1 = Motor_SpeedPID_GetError(&g_Motor1);
-        // float error2 = Motor_SpeedPID_GetError(&g_Motor2);
-        
+        Chassis_Control(&g_chassis);
+        CAN_SendChassisStatus(&g_chassis);
         vTaskDelay(xDelayTime);
     }
 }

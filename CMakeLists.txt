@@ -52,6 +52,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         Device/Src/PID.c
         Device/Src/Filter.c
         Device/Src/Kinematics.c
+        Device/Src/Chassis.c
 )
 
 # Add include paths

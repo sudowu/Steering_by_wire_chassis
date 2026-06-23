@@ -79,7 +79,7 @@ void hall_start(Motor_t* motor);
 void hall_state_read(Motor_t* motor);
 void motor_commutating_phase_callback(Motor_t* motor);
 void MotorControl(const Motor_t* motor, const motor_pwm_config_t* config);
-void motor_rpm_read(Motor_t* motor);
+void motor_rpm_get(Motor_t* motor);
 void Motor_OffsetCalibration(Motor_t* motor);
 HAL_StatusTypeDef Motor_OffsetCalibrate(Motor_t* motor);
 HAL_StatusTypeDef Motor_ReadAdcCurrent(Motor_t* motor);

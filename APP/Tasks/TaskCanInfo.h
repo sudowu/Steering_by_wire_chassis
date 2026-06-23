@@ -55,23 +55,13 @@ typedef struct
 /* 底盘控制命令标志位 */
 #define CHASSIS_FLAG_ENABLE        0x01
 
-/**
- * @brief 解析后的底盘速度指令
- */
-typedef struct {
-    float linear_velocity;   // 目标线速度 (m/s)
-    float angular_velocity;  // 目标角速度 (rad/s)
-    uint8_t enable;          // 使能标志
-    uint32_t timestamp;      // 最后接收时间戳 (HAL_GetTick())
-} ChassisCommand_t;
-
-/* 底盘命令全局变量（由 CAN RX 更新，由控制任务读取）*/
-extern ChassisCommand_t g_chassis_cmd;
+#include "Chassis.h"
 
 /* ==================== 函数声明 ==================== */
 
 void vTaskCanInfo(void* param);
 HAL_StatusTypeDef CAN_Send_HAL(CAN_Message_t* message);
 void CAN_ProcessRxMessage(const CAN_Message_t* msg);
+void CAN_SendChassisStatus(Chassis_t* c);
 
 #endif //MOTOR_TASKCANINFO_H

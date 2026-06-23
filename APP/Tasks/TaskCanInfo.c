@@ -14,6 +14,9 @@
 #include "queue.h"
 #include "semphr.h"
 
+#include "Chassis.h"
+#include "Motor.h"
+
 TaskHandle_t g_TaskCanInfo;
 SemaphoreHandle_t canTxCompleteSemaphore;
 QueueHandle_t canTxQueue; // CAN发送消息队列
@@ -22,9 +25,6 @@ QueueHandle_t canRxQueue; // CAN接收消息队列
 CAN_RxHeaderTypeDef RxHeader; // 接收报文头
 uint8_t RxData[8]; // 接收数据缓冲区
 uint32_t TxMailbox; // 发送邮箱号
-
-/* 底盘命令全局变量（默认停车、禁用）*/
-ChassisCommand_t g_chassis_cmd = {0.0f, 0.0f, 0, 0};
 
 /**
  * @brief 解析并处理接收到的 CAN 消息（在任务上下文中调用）
@@ -40,10 +40,10 @@ void CAN_ProcessRxMessage(const CAN_Message_t* msg)
             /* 解析角速度 (int16, mrad/s) */
             int16_t angular_raw = (int16_t)(msg->Data[2] | ((uint16_t)msg->Data[3] << 8));
 
-            g_chassis_cmd.linear_velocity  = (float)linear_raw / 1000.0f;   // mm/s → m/s
-            g_chassis_cmd.angular_velocity = (float)angular_raw / 1000.0f;  // mrad/s → rad/s
-            g_chassis_cmd.enable    = (msg->Data[4] & CHASSIS_FLAG_ENABLE) ? 1 : 0;
-            g_chassis_cmd.timestamp = HAL_GetTick();
+            g_chassis.cmd_linear_vel  = (float)linear_raw / 1000.0f;   // mm/s → m/s
+            g_chassis.cmd_angular_vel = (float)angular_raw / 1000.0f;  // mrad/s → rad/s
+            g_chassis.cmd_enable    = (msg->Data[4] & CHASSIS_FLAG_ENABLE) ? 1 : 0;
+            g_chassis.cmd_timestamp = HAL_GetTick();
             break;
         }
 
@@ -107,4 +107,39 @@ HAL_StatusTypeDef CAN_Send_HAL(CAN_Message_t* message)
     TxHeader.TransmitGlobalTime = DISABLE;
 
     return HAL_CAN_AddTxMessage(&hcan1, &TxHeader, message->Data, &TxMailbox);
+}
+
+/**
+ * @brief 发送底盘状态帧 (CAN ID 0x101)
+ *
+ * 从 Chassis_t 读取实际速度和电机状态，按协议组帧并送入 TX 队列。
+ * 在控制循环中每周期调用一次（~100Hz）。
+ */
+void CAN_SendChassisStatus(Chassis_t* c)
+{
+    CAN_Message_t* tx = pvPortMalloc(sizeof(CAN_Message_t));
+    if (tx == NULL)
+    {
+        return;
+    }
+
+    int16_t linear_mm    = (int16_t)(c->actual_linear_vel  * 1000.0f);
+    int16_t angular_mrad = (int16_t)(c->actual_angular_vel * 1000.0f);
+
+    tx->StdId = CAN_ID_CHASSIS_STATUS;
+    tx->Len   = 8;
+    tx->Data[0] = (uint8_t)(linear_mm & 0xFF);
+    tx->Data[1] = (uint8_t)((linear_mm >> 8) & 0xFF);
+    tx->Data[2] = (uint8_t)(angular_mrad & 0xFF);
+    tx->Data[3] = (uint8_t)((angular_mrad >> 8) & 0xFF);
+
+    tx->Data[4] = 0;
+    if (Motor_IsRunning(c->motor_left))  tx->Data[4] |= 0x01;
+    if (Motor_IsRunning(c->motor_right)) tx->Data[4] |= 0x02;
+
+    tx->Data[5] = (uint8_t)(Motor_GetTotalCurrent(c->motor_left)  * 10.0f);
+    tx->Data[6] = (uint8_t)(Motor_GetTotalCurrent(c->motor_right) * 10.0f);
+    tx->Data[7] = 0;
+
+    xQueueSendToBack(canTxQueue, &tx, 0);
 }

@@ -86,9 +86,9 @@ void Kinematics_Inverse(const Kinematics_Params_t* params,
                         float linear_vel, float angular_vel,
                         float* out_rpm_left, float* out_rpm_right)
 {
-    float r = params->wheel_radius;
-    float L = params->track_width;
-    float G = params->gear_ratio;
+    float r = params->wheel_radius; //车轮半径
+    float L = params->track_width;  //左右轮距
+    float G = params->gear_ratio;   //减速比
 
     // 逆运动学公式：计算车轮角速度 (rad/s)
     float w_right = (2.0f * linear_vel + angular_vel * L) / (2.0f * r);
