@@ -424,14 +424,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
   if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rxHeader, rxData) != HAL_OK)
     return;
 
-  /* 动态分配消息结构，通过队列发送到任务 */
-  CAN_Message_t* msg = pvPortMalloc(sizeof(CAN_Message_t));
-  if (msg == NULL)
-    return;
-
-  msg->StdId = rxHeader.StdId;
-  msg->Len   = rxHeader.DLC;
-  memcpy(msg->Data, rxData, 8);
+  CAN_Message_t msg;
+  msg.StdId = rxHeader.StdId;
+  msg.Len   = rxHeader.DLC;
+  memcpy(msg.Data, rxData, 8);
 
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
   xQueueSendFromISR(canRxQueue, &msg, &xHigherPriorityTaskWoken);

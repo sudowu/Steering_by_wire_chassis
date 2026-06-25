@@ -91,11 +91,10 @@ void vTaskCanInfo(void* paramter)
         }
 
         /* 非阻塞检查 RX 队列 */
-        CAN_Message_t* rxMsg;
+        CAN_Message_t rxMsg;
         while (xQueueReceive(canRxQueue, &rxMsg, 0) == pdTRUE)
         {
-            CAN_ProcessRxMessage(rxMsg);
-            vPortFree(rxMsg);
+            CAN_ProcessRxMessage(&rxMsg);
         }
     }
 }
