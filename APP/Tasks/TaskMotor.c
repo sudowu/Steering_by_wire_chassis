@@ -152,6 +152,7 @@ void vTask_SpeedControl(void* parameter)
     {
         Chassis_Control(&g_chassis);
         CAN_SendChassisStatus(&g_chassis);
+        CAN_SendMotorRPM(&g_chassis);
         vTaskDelay(xDelayTime);
     }
 }

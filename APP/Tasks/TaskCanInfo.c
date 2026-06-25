@@ -80,9 +80,14 @@ void vTaskCanInfo(void* paramter)
         {
             if (CAN_Send_HAL(message) == HAL_OK)
             {
-                xSemaphoreTake(canTxCompleteSemaphore, portMAX_DELAY);
+                if (xSemaphoreTake(canTxCompleteSemaphore, pdMS_TO_TICKS(50)) != pdTRUE)
+                {
+                    /* 超时：总线异常（如 bus-off），中止发送并消耗 abort 产生的信号量 */
+                    HAL_CAN_AbortTxRequest(&hcan1, TxMailbox);
+                    xSemaphoreTake(canTxCompleteSemaphore, pdMS_TO_TICKS(10));
+                }
             }
-            vPortFree(message); // 释放动态分配的消息内存
+            vPortFree(message);
         }
 
         /* 非阻塞检查 RX 队列 */
@@ -141,5 +146,41 @@ void CAN_SendChassisStatus(Chassis_t* c)
     tx->Data[6] = (uint8_t)(Motor_GetTotalCurrent(c->motor_right) * 10.0f);
     tx->Data[7] = 0;
 
-    xQueueSendToBack(canTxQueue, &tx, 0);
+    if (xQueueSendToBack(canTxQueue, &tx, 0) != pdTRUE)
+    {
+        vPortFree(tx);
+    }
+}
+
+/**
+ * @brief 发送电机转速帧 (CAN ID 0x102)
+ *
+ * 上报左右电机当前 RPM，在控制循环中每周期调用一次（~100Hz）。
+ */
+void CAN_SendMotorRPM(Chassis_t* c)
+{
+    CAN_Message_t* tx = pvPortMalloc(sizeof(CAN_Message_t));
+    if (tx == NULL)
+    {
+        return;
+    }
+
+    int16_t rpm_left  = (int16_t)(c->motor_left->rpm);
+    int16_t rpm_right = (int16_t)(c->motor_right->rpm);
+
+    tx->StdId = CAN_ID_MOTOR_RPM;
+    tx->Len   = 8;
+    tx->Data[0] = (uint8_t)(rpm_left & 0xFF);
+    tx->Data[1] = (uint8_t)((rpm_left >> 8) & 0xFF);
+    tx->Data[2] = (uint8_t)(rpm_right & 0xFF);
+    tx->Data[3] = (uint8_t)((rpm_right >> 8) & 0xFF);
+    tx->Data[4] = 0;
+    tx->Data[5] = 0;
+    tx->Data[6] = 0;
+    tx->Data[7] = 0;
+
+    if (xQueueSendToBack(canTxQueue, &tx, 0) != pdTRUE)
+    {
+        vPortFree(tx);
+    }
 }

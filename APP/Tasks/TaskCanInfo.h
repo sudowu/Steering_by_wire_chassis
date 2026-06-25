@@ -30,6 +30,9 @@ typedef struct
 /* 底盘状态上报 ID */
 #define CAN_ID_CHASSIS_STATUS      0x101
 
+/* 电机转速上报 ID */
+#define CAN_ID_MOTOR_RPM           0x102
+
 /* 底盘速度指令格式 (ID 0x100, 8 bytes)
  *  Byte[0-1]:  线速度 (int16, 单位: mm/s, scale 1)
  *  Byte[2-3]:  角速度 (int16, 单位: mrad/s, scale 1)
@@ -52,6 +55,12 @@ typedef struct
  *  Byte[7]:    保留
  */
 
+/* 电机转速上报格式 (ID 0x102, 8 bytes)
+ *  Byte[0-1]:  左电机转速 (int16, 单位: RPM)
+ *  Byte[2-3]:  右电机转速 (int16, 单位: RPM)
+ *  Byte[4-7]:  保留
+ */
+
 /* 底盘控制命令标志位 */
 #define CHASSIS_FLAG_ENABLE        0x01
 
@@ -63,5 +72,6 @@ void vTaskCanInfo(void* param);
 HAL_StatusTypeDef CAN_Send_HAL(CAN_Message_t* message);
 void CAN_ProcessRxMessage(const CAN_Message_t* msg);
 void CAN_SendChassisStatus(Chassis_t* c);
+void CAN_SendMotorRPM(Chassis_t* c);
 
 #endif //MOTOR_TASKCANINFO_H

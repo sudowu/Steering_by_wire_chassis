@@ -8,9 +8,9 @@
 #include "main.h"
 
 /* 默认运动学参数（需根据实际底盘修改）*/
-#define KINEMATICS_WHEEL_RADIUS_DEFAULT    0.075f   // 车轮半径 (m)
-#define KINEMATICS_TRACK_WIDTH_DEFAULT     0.350f   // 左右轮距 (m)
-#define KINEMATICS_GEAR_RATIO_DEFAULT      1.0f     // 减速比 (电机轴转速 / 车轮转速)
+#define KINEMATICS_WHEEL_RADIUS_DEFAULT    0.15f   // 车轮半径 (m)
+#define KINEMATICS_TRACK_WIDTH_DEFAULT     0.60f   // 左右轮距 (m)
+#define KINEMATICS_GEAR_RATIO_DEFAULT      10.0f     // 减速比 (电机轴转速 / 车轮转速)
 
 /**
  * @brief 四轮差速底盘运动学参数
