@@ -3,6 +3,9 @@
 //
 
 #include "Chassis.h"
+
+#include <math.h>
+
 #include "main.h"
 
 Chassis_t g_chassis;
@@ -49,8 +52,20 @@ void Chassis_Control(Chassis_t* c)
     }
     else
     {
-        Motor_Stop(c->motor_left);
-        Motor_Stop(c->motor_right);
+        /* 两阶段停机：先减速到 0，转速低于阈值后再切断驱动桥 */
+        uint8_t left_stopped  = fabsf(c->motor_left->rpm)  < MOTOR_STOP_RPM_THRESHOLD;
+        uint8_t right_stopped = fabsf(c->motor_right->rpm) < MOTOR_STOP_RPM_THRESHOLD;
+
+        if (left_stopped && right_stopped)
+        {
+            Motor_Stop(c->motor_left);
+            Motor_Stop(c->motor_right);
+        }
+        else
+        {
+            Motor_SpeedControl(c->motor_left,  0.0f);
+            Motor_SpeedControl(c->motor_right, 0.0f);
+        }
     }
 
     /* 正运动学：实际 RPM → 实际车体速度（供状态上报使用）*/

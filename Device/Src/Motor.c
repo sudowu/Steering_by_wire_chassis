@@ -57,6 +57,7 @@ void motor_init()
     g_Motor1.run_state = 0;
     g_Motor1.commutating_counter = 0;
     g_Motor1.last_encoder_count = 0;
+    g_Motor1.encoder_direction = 1;  // 编码器极性翻转
     // 初始化电机2
     g_Motor2.id = MOTOR2;
     g_Motor2.htim = &htim8; // 关联定时器8
@@ -68,6 +69,7 @@ void motor_init()
     g_Motor2.run_state = 0;
     g_Motor2.commutating_counter = 0;
     g_Motor2.last_encoder_count = 0;
+    g_Motor2.encoder_direction = 0;  // 编码器极性正常
 }
 
 
@@ -83,8 +85,9 @@ void motor_rpm_get(Motor_t* motor)
     if (delta > 0x8000) delta -= 0x10000;
     else if (delta < -0x8000) delta += 0x10000;
 
-    // RPM计算: 每转脉冲数=1024PPR, 采样周期=0.01s
-    motor->rpm =  - (delta * 6000.0) / (1024 * 4); // 4倍频修正
+    // RPM计算: 每转脉冲数=1024PPR, 采样周期=0.01s, 4倍频修正
+    float enc_dir = (motor->encoder_direction == 1) ? 1.0f : -1.0f;
+    motor->rpm = enc_dir * (delta * 6000.0f) / (1024.0f * 4.0f);
 
     motor->last_encoder_count = currentCount;
 }
@@ -540,6 +543,9 @@ void Motor_SpeedPID_Init(Motor_t* motor, float Kp, float Ki, float Kd)
     // 初始化 PID 控制器，输出范围 0-1000 (对应 PWM 占空比)
     PID_Init(&motor->pid, Kp, Ki, Kd, 1000.0f, 0.0f);
 
+    motor->max_accel_rpm_s = 0.0f;     // 默认不限幅
+    motor->smoothed_target_rpm = 0.0f;
+
     // 设置目标速度为 0
     PID_SetTarget(&motor->pid, 0.0f);
 }
@@ -557,25 +563,52 @@ HAL_StatusTypeDef Motor_SpeedControl(Motor_t* motor, float target_rpm)
         return HAL_ERROR;
     }
 
-    // 如果电机未运行，先启动电机
+    /* 目标为 0 且电机已停止：无需操作 */
+    if (fabsf(target_rpm) < 0.5f && !Motor_IsRunning(motor))
+    {
+        return HAL_OK;
+    }
+
+    // 更新反馈速度
+    float feedback_rpm = (motor->direction == motor->forward_direction) ? motor->rpm : -motor->rpm;
+
+    // 如果电机未运行，先启动电机，并以当前转速种子斜坡目标
     if (!Motor_IsRunning(motor))
     {
-        // 确定启动方向
+        motor->smoothed_target_rpm = fabsf(feedback_rpm);
+        PID_Reset(&motor->pid);  // 清除停机前残留的积分和误差历史
+
         direction_t start_dir = (target_rpm >= 0) ? motor->forward_direction : (motor->forward_direction == CW ? CCW : CW);
 
-        // 以较小的占空比启动电机
         if (Motor_Start(motor, start_dir, 70) != HAL_OK)
         {
             return HAL_ERROR;
         }
     }
 
-    // 更新反馈速度 (使用绝对值)
-    float feedback_rpm = (motor->direction == motor->forward_direction) ? motor->rpm : -motor->rpm;
     PID_SetFeedback(&motor->pid, feedback_rpm);
 
-    // 设置目标速度 (使用绝对值)
-    PID_SetTarget(&motor->pid, fabsf(target_rpm));
+    float target_abs = fabsf(target_rpm);
+
+    // 斜坡限幅：按 max_accel_rpm_s 限制目标转速变化速率（100Hz 控制周期）
+    if (motor->max_accel_rpm_s > 0.0f)
+    {
+        float delta_max = motor->max_accel_rpm_s * 0.01f;
+        float error = target_abs - motor->smoothed_target_rpm;
+        if (fabsf(error) > delta_max)
+        {
+            motor->smoothed_target_rpm += (error > 0.0f) ? delta_max : -delta_max;
+        }
+        else
+        {
+            motor->smoothed_target_rpm = target_abs;
+        }
+        PID_SetTarget(&motor->pid, motor->smoothed_target_rpm);
+    }
+    else
+    {
+        PID_SetTarget(&motor->pid, target_abs);
+    }
     
     // 计算 PID 输出
     float pid_output = PID_Calculate(&motor->pid);
@@ -583,13 +616,26 @@ HAL_StatusTypeDef Motor_SpeedControl(Motor_t* motor, float target_rpm)
     // 将 PID 输出转换为 PWM 占空比并应用
     uint16_t pwm_duty = (uint16_t)pid_output;
     
-    // 确保占空比在有效范围内
-    if (pwm_duty < 50) pwm_duty = 50;   // 最小启动占空比
-    if (pwm_duty > 1000) pwm_duty = 1000;
-    
+    // 占空比限幅与停机判断
+    if (fabsf(target_rpm) < 0.5f)
+    {
+        // 停机中：允许占空比降到 0，转速低于阈值后切断驱动桥
+        if (pwm_duty > 1000) pwm_duty = 1000;
+        if (pwm_duty == 0 && fabsf(motor->rpm) < MOTOR_STOP_RPM_THRESHOLD)
+        {
+            Motor_Stop(motor);
+            return HAL_OK;
+        }
+    }
+    else
+    {
+        if (pwm_duty < 50) pwm_duty = 50;   // 最小启动占空比
+        if (pwm_duty > 1000) pwm_duty = 1000;
+    }
+
     // 更新 PWM 占空比
     Motor_SetDutyCycle(motor, pwm_duty);
-    
+
     return HAL_OK;
 }
 
@@ -636,8 +682,16 @@ void Motor_SpeedPID_Enable(Motor_t* motor, uint8_t enable)
     {
         return;
     }
-    
+
     PID_SetEnable(&motor->pid, enable);
 }
 
+void Motor_SetMaxAcceleration(Motor_t* motor, float max_accel_rpm_s)
+{
+    if (motor == NULL)
+    {
+        return;
+    }
+    motor->max_accel_rpm_s = max_accel_rpm_s;
+}
 

@@ -9,7 +9,8 @@
 #include "Kinematics.h"
 
 /* 底盘命令超时 (ms) —— 超时后视为通信丢失，自动停机 */
-#define CHASSIS_COMMAND_TIMEOUT_MS  200
+#define CHASSIS_COMMAND_TIMEOUT_MS  500
+
 
 /**
  * @brief 底盘聚合结构体

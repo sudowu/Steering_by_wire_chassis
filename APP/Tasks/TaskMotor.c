@@ -45,7 +45,8 @@ void vTaskMotor(void* parameter)
 
     Motor_SpeedPID_Init(g_chassis.motor_left,  0.2f, 0.02f, 0.001f);
     Motor_SpeedPID_Init(g_chassis.motor_right, 0.2f, 0.02f, 0.001f);
-
+    Motor_SetMaxAcceleration(g_chassis.motor_left, 500.0f);  // 最大 500 RPM/s
+    Motor_SetMaxAcceleration(g_chassis.motor_right, 500.0f);  // 最大 500 RPM/s
     // 创建速度控制任务
     xTaskCreate(vTask_SpeedControl, "SpeedCtrl", 256, NULL, osPriorityNormal1, &g_TaskSpeedControl);
 

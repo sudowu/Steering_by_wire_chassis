@@ -12,6 +12,7 @@
 #define ADC_SAMPLE_GROUP    4        //正常采样次数，越大越稳定，但响应越慢
 #define ADC_BUFFER_SIZE     (ADC_CHANNELS * ADC_SAMPLE_GROUP) // ADC DMA 缓冲区大小
 #define ADC_OFFSET_SAMPLES  16            // 用于电流偏置校准的采样次数
+#define MOTOR_STOP_RPM_THRESHOLD  30      // 停机判定阈值 (RPM)，低于此值可安全切断驱动桥
 
 typedef struct {
     uint8_t h_pwm_channel;
@@ -68,6 +69,8 @@ typedef struct
     int32_t last_encoder_count; // 上次编码器计数，用于计算delta
     adc_current_t adc_current; // 电流采样数据
     AdvancedPID_TypeDef pid; // PID控制器实例
+    float max_accel_rpm_s;       // 最大加速度 (RPM/s)，0 表示不限幅
+    float smoothed_target_rpm;   // 经斜坡限幅后的目标转速
 } Motor_t;
 
 extern Motor_t g_Motor1;
@@ -101,5 +104,6 @@ HAL_StatusTypeDef Motor_SpeedControl(Motor_t* motor, float target_rpm);
 void Motor_SpeedPID_SetParams(Motor_t* motor, float Kp, float Ki, float Kd);
 float Motor_SpeedPID_GetError(Motor_t* motor);
 void Motor_SpeedPID_Enable(Motor_t* motor, uint8_t enable);
+void Motor_SetMaxAcceleration(Motor_t* motor, float max_accel_rpm_s);
 #endif //MOTOR_MOTOR_H
 
