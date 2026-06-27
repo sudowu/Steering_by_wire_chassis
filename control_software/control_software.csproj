@@ -84,6 +84,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Chassis.cs" />
+    <Compile Include="Controls\ModernButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Controls\ModernComboBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Controls\ModernGroupBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ThemeColors.cs" />
     <Compile Include="controlcan.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>

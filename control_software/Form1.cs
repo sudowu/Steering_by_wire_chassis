@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using control_software.Controls;
 
 namespace control_software
 {
@@ -132,17 +132,42 @@ namespace control_software
             config.Mode = 0;              // 工作模式：0-正常模式
             sendobj.ID = 0X08;            // 发送帧ID设置为0x08
 
+            // 填充下拉列表项
+            comboBox_DevIndex.Items.Clear();
+            comboBox_DevIndex.Items.Add("0"); comboBox_DevIndex.Items.Add("1");
+            comboBox_DevIndex.Items.Add("2"); comboBox_DevIndex.Items.Add("3");
             comboBox_DevIndex.SelectedIndex = (int)m_devind;
+
+            comboBox_CANIndex.Items.Clear();
+            comboBox_CANIndex.Items.Add("0"); comboBox_CANIndex.Items.Add("1");
             comboBox_CANIndex.SelectedIndex = (int)m_canind;
+
+            comboBox_Filter.Items.Clear();
+            comboBox_Filter.Items.Add("接收全部类型");
+            comboBox_Filter.Items.Add("只接收标准帧");
+            comboBox_Filter.Items.Add("只接收扩展帧");
             comboBox_Filter.SelectedIndex = config.Filter - 1;
+
+            comboBox_Mode.Items.Clear();
+            comboBox_Mode.Items.Add("正常");
+            comboBox_Mode.Items.Add("只听");
+            comboBox_Mode.Items.Add("自测");
             comboBox_Mode.SelectedIndex = config.Mode;
+
+            comboBox_FrameFormat.Items.Clear();
+            comboBox_FrameFormat.Items.Add("数据帧");
+            comboBox_FrameFormat.Items.Add("远程帧");
+            comboBox_FrameFormat.SelectedIndex = 0;
+
+            comboBox_FrameType.Items.Clear();
+            comboBox_FrameType.Items.Add("标准帧");
+            comboBox_FrameType.Items.Add("扩展帧");
+            comboBox_FrameType.SelectedIndex = 0;
 
             textBox_AccCode.Text = config.AccCode.ToString("X8");
             textBox_AccMask.Text = config.AccMask.ToString("X8");
             textBox_Time0.Text = config.Timing0.ToString("X2");
             textBox_Time1.Text = config.Timing1.ToString("X2");
-            comboBox_FrameType.SelectedIndex = 0;
-            comboBox_FrameFormat.SelectedIndex = 0;
             textBox_Data.Text = "00 00 00 00 00 00 00 00";
             textBox_ID.Text = sendobj.ID.ToString("X5");
 
@@ -154,11 +179,14 @@ namespace control_software
             comboBox_devtype.SelectedIndex = curindex;
 
             
-            listView_Info.Columns.Add("帧ID", 70, HorizontalAlignment.Center);
-            listView_Info.Columns.Add("帧格式", 60, HorizontalAlignment.Center);
-            listView_Info.Columns.Add("帧类型", 60, HorizontalAlignment.Center);
-            listView_Info.Columns.Add("数据", 200, HorizontalAlignment.Center);
+            listView_Info.Columns.Add("帧ID", 90, HorizontalAlignment.Center);
+            listView_Info.Columns.Add("帧格式", 100, HorizontalAlignment.Center);
+            listView_Info.Columns.Add("帧类型", 100, HorizontalAlignment.Center);
+            listView_Info.Columns.Add("数据", 900, HorizontalAlignment.Left);
             listView_Info.SmallImageList = imageList1;
+
+            // 应用现代暗色主题
+            ApplyTheme();
         }
 
         /// <summary>
@@ -213,7 +241,24 @@ namespace control_software
                 controlcan.VCI_InitCAN(m_devtype, m_devind, m_canind, ref config);
             }
             // 更新按钮文本：已打开显示"断开"，未打开显示"连接"
-            buttonConnect.Text = m_bOpen == 1 ? "断开" : "连接";
+            buttonConnect.Text = m_bOpen == 1 ? "断开设备" : "连接设备";
+            // 更新状态栏
+            if (m_bOpen == 1)
+            {
+                labelStatusConn.Text = "●  已连接";
+                labelStatusConn.ForeColor = ThemeColors.StatusOnline;
+                labelStatusDev.Text = comboBox_devtype.SelectedItem.ToString();
+                labelStatusCh.Text = "通道 " + m_canind.ToString();
+            }
+            else
+            {
+                labelStatusConn.Text = "●  未连接";
+                labelStatusConn.ForeColor = ThemeColors.StatusOffline;
+                labelStatusCAN.Text = "CAN 停止";
+                labelStatusCAN.ForeColor = ThemeColors.StatusOffline;
+                labelStatusDev.Text = "—";
+                labelStatusCh.Text = "通道 —";
+            }
             // 设备打开后启动定时器，开始接收CAN数据
             timer_rec.Enabled = m_bOpen == 1 ? true : false;
         }
@@ -309,24 +354,28 @@ namespace control_software
                             // 根据Data[0]更新制动器1状态
                             if(m_recobj1->Data[0] == 1)
                             {
-                                button_brake_state1.BackColor = Color.Red;   // 红色表示制动
+                                button_brake_state1.UseAccent = true;
+                                button_brake_state1.AccentColor = ThemeColors.Danger;
                                 button_brake_state1.Text = "制动";
                             }
                             else
                             {
-                                button_brake_state1.BackColor = Color.Green; // 绿色表示解除
+                                button_brake_state1.UseAccent = true;
+                                button_brake_state1.AccentColor = ThemeColors.Success;
                                 button_brake_state1.Text = "解除";
                             }
 
                             // 根据Data[1]更新制动器2状态
                             if(m_recobj1->Data[1] == 1)
                             {
-                                button_brake_state2.BackColor = Color.Red;
+                                button_brake_state2.UseAccent = true;
+                                button_brake_state2.AccentColor = ThemeColors.Danger;
                                 button_brake_state2.Text = "制动";
                             }
                             else
                             {
-                                button_brake_state2.BackColor = Color.Green;
+                                button_brake_state2.UseAccent = true;
+                                button_brake_state2.AccentColor = ThemeColors.Success;
                                 button_brake_state2.Text = "解除";
                             }
                         }
@@ -483,6 +532,8 @@ namespace control_software
             // 启动CAN通道，使能接收和发送功能
             controlcan.VCI_StartCAN(m_devtype, m_devind, m_canind);
             m_start = 1;  // 设置启动标志，定时器可以开始发送控制命令
+            labelStatusCAN.Text = "●  CAN 运行中";
+            labelStatusCAN.ForeColor = ThemeColors.StatusOnline;
         }
 
         /// <summary>
@@ -497,6 +548,8 @@ namespace control_software
                 return;
             controlcan.VCI_ResetCAN(m_devtype, m_devind, m_canind);
             m_start = 0;
+            labelStatusCAN.Text = "CAN 停止";
+            labelStatusCAN.ForeColor = ThemeColors.StatusOffline;
         }
 
         /// <summary>
@@ -584,11 +637,12 @@ namespace control_software
                 return;
             // 设置底盘状态为前进状态
             cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_RUNNING;
-            // 更新UI按钮状态：前进按钮高亮（绿色），其他按钮恢复默认颜色
-            button_advance.BackColor = System.Drawing.Color.SpringGreen;
-            button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_turn_right.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_turn_left.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            // 更新UI按钮状态：前进按钮高亮，其他按钮恢复默认
+            button_advance.UseAccent = true;
+            button_advance.AccentColor = ThemeColors.Success;
+            button_Retreat.UseAccent = false;
+            button_turn_right.UseAccent = false;
+            button_turn_left.UseAccent = false;
         }
 
         /// <summary>
@@ -602,10 +656,11 @@ namespace control_software
             if (m_bOpen == 0)
                 return;
             cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_RETREAT;
-            button_Retreat.BackColor = System.Drawing.Color.SpringGreen;
-            button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_turn_right.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_turn_left.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_Retreat.UseAccent = true;
+            button_Retreat.AccentColor = ThemeColors.Warning;
+            button_advance.UseAccent = false;
+            button_turn_right.UseAccent = false;
+            button_turn_left.UseAccent = false;
         }
 
         /// <summary>
@@ -626,11 +681,11 @@ namespace control_software
                 return;
             // 设置停止标志，定时器会在下次循环中处理此标志
             cHASSIS_INFO.stop_flag = 1;
-            // 重置所有运动按钮颜色为默认（取消高亮）
-            button_turn_right.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_turn_left.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            // 重置所有运动按钮为默认
+            button_turn_right.UseAccent = false;
+            button_turn_left.UseAccent = false;
+            button_advance.UseAccent = false;
+            button_Retreat.UseAccent = false;
         }
 
         /// <summary>
@@ -643,16 +698,12 @@ namespace control_software
         {
             if (m_bOpen == 0)
                 return;
-            //cHASSIS_INFO.stop_flag = 1;
-            //while (button_brake_state1.BackColor != Color.Red && button_brake_state2.BackColor != Color.Red) ;
-            //while (cHASSIS_INFO.status != CHASSIS_STATUS.CHASSIS_STATUS_IDLE) ;
             cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_LEFT;
-            button_turn_left.BackColor = System.Drawing.Color.SpringGreen;
-            button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_turn_right.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-
-
+            button_turn_left.UseAccent = true;
+            button_turn_left.AccentColor = ThemeColors.Info;
+            button_advance.UseAccent = false;
+            button_Retreat.UseAccent = false;
+            button_turn_right.UseAccent = false;
         }
 
         /// <summary>
@@ -665,14 +716,12 @@ namespace control_software
         {
             if (m_bOpen == 0)
                 return;
-            //cHASSIS_INFO.stop_flag = 1;
-            //while (button_brake_state1.BackColor != Color.Red && button_brake_state2.BackColor != Color.Red) ;
-            //while (cHASSIS_INFO.status != CHASSIS_STATUS.CHASSIS_STATUS_IDLE) ;
             cHASSIS_INFO.status = CHASSIS_STATUS.CHASSIS_STATUS_RIGHT;
-            button_turn_right.BackColor = System.Drawing.Color.SpringGreen;
-            button_turn_left.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_advance.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            button_Retreat.BackColor = System.Drawing.SystemColors.ButtonHighlight;
+            button_turn_right.UseAccent = true;
+            button_turn_right.AccentColor = ThemeColors.Info;
+            button_turn_left.UseAccent = false;
+            button_advance.UseAccent = false;
+            button_Retreat.UseAccent = false;
         }
 
         private void comboBox_CANIndex_SelectedIndexChanged(object sender, EventArgs e)
@@ -710,6 +759,218 @@ namespace control_software
         private void trackBar_Power_Scroll(object sender, EventArgs e)
         {
             label_power.Text = trackBar_Power.Value.ToString() + "%";
+        }
+
+        // Windows 深色标题栏 API
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        private const int DWMWA_BORDER_COLOR = 34;
+        private const int DWMWA_CAPTION_COLOR = 35;
+
+        /// <summary>
+        /// 启用 Windows 深色标题栏（在 Handle 创建后调用）
+        /// </summary>
+        private void SetDarkTitleBar()
+        {
+            if (!this.IsHandleCreated) return;
+
+            int useDarkMode = 1;
+            DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDarkMode, sizeof(int));
+
+            // Windows 11: 同时设置标题栏和边框颜色
+            int darkColor = ThemeColors.Background.ToArgb() & 0xFFFFFF;
+            DwmSetWindowAttribute(this.Handle, DWMWA_CAPTION_COLOR, ref darkColor, sizeof(int));
+            DwmSetWindowAttribute(this.Handle, DWMWA_BORDER_COLOR, ref darkColor, sizeof(int));
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            SetDarkTitleBar();
+        }
+
+        /// <summary>
+        /// 应用现代暗色主题到所有控件
+        /// </summary>
+        private void ApplyTheme()
+        {
+            // 窗体背景
+            this.BackColor = ThemeColors.Background;
+            this.ForeColor = ThemeColors.TextPrimary;
+
+            // 递归设置所有控件主题
+            ApplyThemeToControls(this.Controls);
+
+            // 设置 ListView 为 OwnerDraw 模式
+            listView_Info.OwnerDraw = true;
+            listView_Info.BackColor = ThemeColors.Surface;
+            listView_Info.ForeColor = ThemeColors.TextPrimary;
+            listView_Info.DrawColumnHeader += ListView_Info_DrawColumnHeader;
+            listView_Info.DrawItem += ListView_Info_DrawItem;
+            listView_Info.DrawSubItem += ListView_Info_DrawSubItem;
+
+            // GroupBox 特殊处理
+            foreach (Control ctrl in this.Controls)
+            {
+                if (ctrl is ModernGroupBox gb)
+                {
+                    gb.BackColor = ThemeColors.Surface;
+                    gb.ForeColor = ThemeColors.Accent;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 递归应用主题到控件树
+        /// </summary>
+        private void ApplyThemeToControls(Control.ControlCollection controls)
+        {
+            foreach (Control ctrl in controls)
+            {
+                if (ctrl is ModernButton btn)
+                {
+                    btn.BackColor = ThemeColors.ButtonNormal;
+                    btn.ForeColor = ThemeColors.TextPrimary;
+                }
+                else if (ctrl is ModernGroupBox)
+                {
+                    // GroupBox 已在 ApplyTheme 中处理
+                }
+                else if (ctrl is ModernComboBox mcb)
+                {
+                    mcb.BackColor = ThemeColors.SurfaceLight;
+                    mcb.ForeColor = ThemeColors.TextPrimary;
+                }
+                else if (ctrl is TextBox tb)
+                {
+                    tb.BackColor = ThemeColors.SurfaceLight;
+                    tb.ForeColor = ThemeColors.TextPrimary;
+                    tb.BorderStyle = BorderStyle.FixedSingle;
+                }
+                else if (ctrl is Label lbl)
+                {
+                    // 保留状态栏标签的显式颜色
+                    if (lbl.Name.StartsWith("labelStatus")) { }
+                    else
+                    {
+                        lbl.ForeColor = ThemeColors.TextPrimary;
+                    }
+                    lbl.BackColor = Color.Transparent;
+                }
+                else if (ctrl is TrackBar tb2)
+                {
+                    tb2.BackColor = ThemeColors.PanelBg;
+                }
+                else if (ctrl is ListView lv)
+                {
+                    lv.BackColor = ThemeColors.PanelBg;
+                    lv.ForeColor = ThemeColors.TextPrimary;
+                }
+                else if (ctrl is Panel pnl)
+                {
+                    pnl.BackColor = ThemeColors.PanelBg;
+                    pnl.ForeColor = ThemeColors.TextPrimary;
+                }
+                else
+                {
+                    if (!(ctrl is Label lbl2 && lbl2.Name.StartsWith("labelStatus")))
+                    {
+                        ctrl.BackColor = ThemeColors.PanelBg;
+                    }
+                    ctrl.ForeColor = ThemeColors.TextPrimary;
+                }
+
+                // 递归子控件
+                if (ctrl.HasChildren)
+                    ApplyThemeToControls(ctrl.Controls);
+            }
+        }
+
+        /// <summary>
+        /// ListView 列标题自绘 — 暗色主题
+        /// </summary>
+        private void ListView_Info_DrawColumnHeader(object sender, DrawListViewColumnHeaderEventArgs e)
+        {
+            e.DrawDefault = false;
+            using (var bgBrush = new SolidBrush(ThemeColors.SurfaceLight))
+            using (var textBrush = new SolidBrush(ThemeColors.TextPrimary))
+            using (var pen = new Pen(ThemeColors.Border))
+            {
+                e.Graphics.FillRectangle(bgBrush, e.Bounds);
+                e.Graphics.DrawLine(pen, e.Bounds.Left, e.Bounds.Bottom - 1,
+                                    e.Bounds.Right, e.Bounds.Bottom - 1);
+
+                var textRect = new Rectangle(e.Bounds.X + 4, e.Bounds.Y + 2,
+                    e.Bounds.Width - 8, e.Bounds.Height - 4);
+                e.Graphics.DrawString(e.Header.Text, this.Font, textBrush, textRect);
+            }
+        }
+
+        /// <summary>
+        /// ListView 行自绘 — 暗色主题
+        /// </summary>
+        private void ListView_Info_DrawItem(object sender, DrawListViewItemEventArgs e)
+        {
+            e.DrawDefault = false;
+            Color bgColor;
+            if ((e.State & ListViewItemStates.Selected) != 0)
+                bgColor = ThemeColors.Accent;
+            else if (e.ItemIndex % 2 == 0)
+                bgColor = ThemeColors.Surface;
+            else
+                bgColor = ThemeColors.SurfaceLight;
+
+            using (var bgBrush = new SolidBrush(bgColor))
+            {
+                e.Graphics.FillRectangle(bgBrush, e.Bounds);
+            }
+
+            // 绘制图标（发送/接收指示灯）
+            if (e.Item.ImageIndex >= 0 && imageList1.Images.Count > e.Item.ImageIndex)
+            {
+                var img = imageList1.Images[e.Item.ImageIndex];
+                int y = e.Bounds.Y + (e.Bounds.Height - img.Height) / 2;
+                e.Graphics.DrawImage(img, e.Bounds.X + 4, y, img.Width, img.Height);
+            }
+        }
+
+        /// <summary>
+        /// ListView 单元格自绘 — 暗色主题
+        /// </summary>
+        private void ListView_Info_DrawSubItem(object sender, DrawListViewSubItemEventArgs e)
+        {
+            e.DrawDefault = false;
+            Color bgColor;
+            if ((e.ItemState & ListViewItemStates.Selected) != 0)
+                bgColor = ThemeColors.Accent;
+            else if (e.ItemIndex % 2 == 0)
+                bgColor = ThemeColors.Surface;
+            else
+                bgColor = ThemeColors.SurfaceLight;
+
+            using (var bgBrush = new SolidBrush(bgColor))
+            {
+                e.Graphics.FillRectangle(bgBrush, e.Bounds);
+            }
+
+            // 文字偏移（第一列给图标留空间）
+            int textOffset = e.ColumnIndex == 0 ? 24 : 4;
+            var textRect = new Rectangle(e.Bounds.X + textOffset, e.Bounds.Y + 2,
+                e.Bounds.Width - textOffset - 4, e.Bounds.Height - 4);
+
+            Color textColor;
+            if ((e.ItemState & ListViewItemStates.Selected) != 0)
+                textColor = Color.White;
+            else
+                textColor = ThemeColors.TextPrimary;
+
+            using (var textBrush = new SolidBrush(textColor))
+            using (var sf = new StringFormat { LineAlignment = StringAlignment.Center })
+            {
+                e.Graphics.DrawString(e.SubItem.Text, this.Font, textBrush, textRect, sf);
+            }
         }
 
 
