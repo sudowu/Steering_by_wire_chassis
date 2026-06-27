@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>线控底盘上位机 — Steer-by-Wire Chassis Host</title>
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg-primary:    #0d1117;
+  --bg-secondary:  #161b22;
+  --bg-tertiary:   #21262d;
+  --border:        #30363d;
+  --text-primary:  #e6edf3;
+  --text-secondary:#8b949e;
+  --text-muted:    #484f58;
+  --accent:        #58a6ff;
+  --accent-dim:    #1f3a5f;
+  --success:       #3fb950;
+  --warning:       #d2991d;
+  --danger:        #f85149;
+  --cyan:          #39d2c0;
+  --purple:        #a371f7;
+  --orange:        #f0883e;
+  --font-mono:     'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  --font-sans:     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+  --radius:        8px;
+  --gauge-size:    200px;
+}
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  display: flex; flex-direction: column;
+  user-select: none;
+}
+
+/* ===== Top Bar ===== */
+#topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 8px 16px; background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; height: 48px;
+}
+#topbar .logo { font-size: 16px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+#topbar .logo span { color: var(--text-secondary); font-weight: 400; font-size: 13px; }
+#topbar .sep { width: 1px; height: 24px; background: var(--border); }
+#topbar .stat { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+#topbar .stat .dot { width: 8px; height: 8px; border-radius: 50%; }
+#topbar .stat .dot.ok { background: var(--success); box-shadow: 0 0 6px var(--success); }
+#topbar .stat .dot.err { background: var(--danger); }
+#topbar .stat .dot.sim { background: var(--warning); }
+#topbar .stat .val { color: var(--text-primary); font-family: var(--font-mono); }
+#topbar .spacer { flex: 1; }
+#topbar button {
+  padding: 4px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer;
+  font-size: 12px; font-family: var(--font-sans);
+}
+#topbar button:hover { background: var(--border); }
+#topbar button.active { border-color: var(--accent); color: var(--accent); }
+
+/* ===== Main Layout ===== */
+#main {
+  display: flex; flex: 1; min-height: 0;
+  gap: 1px; background: var(--border);
+}
+
+/* ===== Panels ===== */
+.panel {
+  background: var(--bg-secondary); overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+.panel-header {
+  font-size: 13px; font-weight: 600; color: var(--text-secondary);
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0; letter-spacing: 0.5px;
+}
+.panel-body { padding: 12px; flex: 1; }
+
+/* ===== Left: Controls ===== */
+#panel-control { width: 320px; flex-shrink: 0; }
+.control-group { margin-bottom: 16px; }
+.control-group label {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;
+}
+.control-group label .unit { color: var(--text-muted); font-size: 11px; }
+.control-group label .range { color: var(--text-muted); font-size: 10px; }
+.slider-row { display: flex; align-items: center; gap: 8px; }
+.slider-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+.slider-row input[type="number"] {
+  width: 80px; padding: 4px 6px; text-align: right;
+  background: var(--bg-tertiary); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text-primary); font-family: var(--font-mono); font-size: 13px;
+}
+.slider-row input[type="number"]:focus { outline: none; border-color: var(--accent); }
+
+.btn-row { display: flex; gap: 8px; margin-top: 12px; }
+.btn {
+  padding: 8px 16px; border: none; border-radius: var(--radius);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: var(--font-sans); transition: background 0.15s;
+}
+.btn-send  { background: var(--accent); color: #fff; flex: 1; }
+.btn-send:hover { filter: brightness(1.15); }
+.btn-send.auto { background: var(--success); }
+.btn-estop {
+  background: var(--danger); color: #fff; flex: 1;
+  font-size: 15px; letter-spacing: 2px;
+}
+.btn-estop:hover { filter: brightness(1.2); }
+.btn-estop:active { transform: scale(0.97); }
+
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-top: 1px solid var(--border); margin-top: 8px;
+}
+.toggle-row .label { font-size: 13px; color: var(--text-secondary); }
+.toggle-switch {
+  position: relative; width: 44px; height: 24px;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-switch .slider {
+  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg-tertiary); border-radius: 24px; border: 1px solid var(--border);
+  transition: 0.2s;
+}
+.toggle-switch .slider::before {
+  content: ""; position: absolute; height: 18px; width: 18px;
+  left: 2px; bottom: 2px; background: var(--text-muted);
+  border-radius: 50%; transition: 0.2s;
+}
+.toggle-switch input:checked + .slider { background: var(--accent-dim); border-color: var(--accent); }
+.toggle-switch input:checked + .slider::before { transform: translateX(20px); background: var(--accent); }
+
+/* ===== Center: Telemetry ===== */
+#panel-telemetry { flex: 1; min-width: 500px; }
+.gauges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; justify-items: center;
+}
+.gauge-container { text-align: center; }
+.gauge-container .gauge-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.gauge-container canvas { display: block; }
+
+/* current bars */
+.current-bars {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  margin-top: 16px;
+}
+.current-bar {
+  background: var(--bg-tertiary); border-radius: var(--radius); padding: 10px 14px;
+}
+.current-bar .cb-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+.current-bar .cb-row { display: flex; align-items: baseline; gap: 8px; }
+.current-bar .cb-val { font-size: 26px; font-weight: 700; font-family: var(--font-mono); color: var(--cyan); }
+.current-bar .cb-unit { font-size: 12px; color: var(--text-muted); }
+.current-bar .cb-bar-outer { height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; }
+.current-bar .cb-bar-inner { height: 100%; border-radius: 2px; transition: width 0.1s; }
+
+/* ===== Right: Status + Chassis View ===== */
+#panel-status { width: 300px; flex-shrink: 0; }
+.status-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 0;
+  border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.status-item .indicator {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0;
+}
+.status-item .indicator.on { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.status-item .indicator.fault { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+.status-item .indicator.warn { background: var(--warning); }
+.strip-chart-container {
+  margin-top: 12px; background: var(--bg-tertiary); border-radius: var(--radius);
+  text-align: center; padding: 8px;
+}
+.strip-chart-container canvas { display: block; margin: 0 auto; }
+
+/* ===== Bottom: CAN Log ===== */
+#panel-log {
+  height: 200px; flex-shrink: 0; background: var(--bg-secondary);
+  border-top: 1px solid var(--border); display: flex; flex-direction: column;
+}
+#panel-log .log-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+#panel-log .log-header span { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+#panel-log .log-header .filter-btn {
+  font-size: 11px; padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted); cursor: pointer; font-family: var(--font-mono);
+}
+#panel-log .log-header .filter-btn.active { border-color: var(--accent); color: var(--accent); }
+#log-table {
+  flex: 1; overflow-y: auto; font-family: var(--font-mono); font-size: 11px;
+}
+#log-table table { width: 100%; border-collapse: collapse; }
+#log-table th {
+  position: sticky; top: 0; background: var(--bg-tertiary); padding: 3px 8px;
+  text-align: left; font-weight: 600; color: var(--text-muted); font-size: 10px;
+}
+#log-table td {
+  padding: 2px 8px; border-bottom: 1px solid rgba(48,54,61,0.4);
+  white-space: nowrap;
+}
+#log-table .dir-rx { color: var(--cyan); }
+#log-table .dir-tx { color: var(--orange); }
+#log-table tr:hover td { background: rgba(88,166,255,0.05); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ===== Responsive ===== */
+@media (max-width: 1200px) {
+  #main { flex-wrap: wrap; }
+  #panel-control { width: 100%; flex-shrink: 1; }
+  #panel-status { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== TOP BAR ===== -->
+<div id="topbar">
+  <div class="logo">&#9881; 线控底盘 <span>Steer-by-Wire Host</span></div>
+  <div class="sep"></div>
+  <div class="stat"><div class="dot ok" id="dot-conn"></div><span id="conn-text">模拟模式</span></div>
+  <div class="sep"></div>
+  <div class="stat">CAN速率 <span class="val" id="stat-rate">0</span> fps</div>
+  <div class="stat">接收帧 <span class="val" id="stat-rx">0</span></div>
+  <div class="stat">发送帧 <span class="val" id="stat-tx">0</span></div>
+  <div class="spacer"></div>
+  <button id="btn-sim" class="active" onclick="toggleSimMode()">模拟</button>
+  <button id="btn-connect" onclick="toggleConnection()">连接CAN</button>
+</div>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div id="main">
+
+  <!-- LEFT: Control Panel -->
+  <div class="panel" id="panel-control">
+    <div class="panel-header">&#9881; 控制面板 CONTROL</div>
+    <div class="panel-body">
+      <div class="control-group">
+        <label>线速度 (Linear Velocity) <span class="unit">mm/s</span> <span class="range">-2000 ~ 2000</span></label>
+        <div class="slider-row">
+          <input type="range" id="slider-lin" min="-2000" max="2000" value="0" step="10">
+          <input type="number" id="input-lin" value="0" step="10" min="-2000" max="2000">
+        </div>
+      </div>
+      <div class="control-group">
+        <label>角速度 (Angular Velocity) <span class="unit">mrad/s</span> <span class="range">-2000 ~ 2000</span></label>
+        <div class="slider-row">
+          <input type="range" id="slider-ang" min="-2000" max="2000" value="0" step="10">
+          <input type="number" id="input-ang" value="0" step="10" min="-2000" max="2000">
+        </div>
+      </div>
+      <div class="toggle-row">
+        <span class="label">电机使能 (Enable)</span>
+        <label class="toggle-switch"><input type="checkbox" id="toggle-enable"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="label">自动发送 (Auto Send)</span>
+        <label class="toggle-switch"><input type="checkbox" id="toggle-auto" checked><span class="slider"></span></label>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-send" id="btn-send" onclick="sendCommand()">发送命令 SEND</button>
+        <button class="btn btn-estop" onclick="emergencyStop()">急停 E-STOP</button>
+      </div>
+      <div class="control-group" style="margin-top:14px;">
+        <label>命令超时 <span class="unit" id="timeout-display">— ms</span></label>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">超过500ms未收到新命令将自动停车</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: Telemetry -->
+  <div class="panel" id="panel-telemetry">
+    <div class="panel-header">&#128202; 实时数据 TELEMETRY</div>
+    <div class="panel-body">
+      <div class="gauges-grid" id="gauges-grid">
+        <div class="gauge-container">
+          <canvas id="gauge-target-lin" width="180" height="180"></canvas>
+          <div class="gauge-label">目标线速度 (mm/s)</div>
+        </div>
+        <div class="gauge-container">
+          <canvas id="gauge-actual-lin" width="180" height="180"></canvas>
+          <div class="gauge-label">实际线速度 (mm/s)</div>
+        </div>
+        <div class="gauge-container">
+          <canvas id="gauge-ang" width="180" height="180"></canvas>
+          <div class="gauge-label">实际角速度 (mrad/s)</div>
+        </div>
+        <div class="gauge-container">
+          <canvas id="gauge-rpm-l" width="180" height="180"></canvas>
+          <div class="gauge-label">左电机转速 (RPM)</div>
+        </div>
+        <div class="gauge-container">
+          <canvas id="gauge-rpm-r" width="180" height="180"></canvas>
+          <div class="gauge-label">右电机转速 (RPM)</div>
+        </div>
+      </div>
+      <div class="current-bars">
+        <div class="current-bar">
+          <div class="cb-label">左电机电流 Left Current</div>
+          <div class="cb-row"><span class="cb-val" id="curr-l">0.0</span><span class="cb-unit">A</span></div>
+          <div class="cb-bar-outer"><div class="cb-bar-inner" id="curr-bar-l" style="width:0%;background:var(--cyan);"></div></div>
+        </div>
+        <div class="current-bar">
+          <div class="cb-label">右电机电流 Right Current</div>
+          <div class="cb-row"><span class="cb-val" id="curr-r">0.0</span><span class="cb-unit">A</span></div>
+          <div class="cb-bar-outer"><div class="cb-bar-inner" id="curr-bar-r" style="width:0%;background:var(--cyan);"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Status + Chassis View -->
+  <div class="panel" id="panel-status">
+    <div class="panel-header">&#9889; 状态 STATUS</div>
+    <div class="panel-body">
+      <div class="status-item"><div class="indicator" id="ind-l-run"></div>左电机运行 Left Motor</div>
+      <div class="status-item"><div class="indicator" id="ind-r-run"></div>右电机运行 Right Motor</div>
+      <div class="status-item"><div class="indicator" id="ind-l-fault"></div>左电机故障 Left Fault</div>
+      <div class="status-item"><div class="indicator" id="ind-r-fault"></div>右电机故障 Right Fault</div>
+      <div class="status-item"><div class="indicator" id="ind-enable"></div>使能状态 Enable</div>
+      <div class="status-item"><div class="indicator" id="ind-timeout"></div>命令超时 Timeout</div>
+      <div class="status-item" style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;">
+        <span>角速度实际值</span><span id="actual-ang-text" style="font-family:var(--font-mono);color:var(--text-primary);">0 mrad/s</span>
+      </div>
+      <div class="strip-chart-container">
+        <canvas id="strip-chart" width="280" height="200"></canvas>
+        <div style="font-size:10px;color:var(--text-muted);">速度跟踪 Velocity Tracking</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== BOTTOM: CAN Log ===== -->
+<div class="panel" id="panel-log">
+  <div class="log-header">
+    <span>&#128226; CAN 消息日志</span>
+    <button class="filter-btn active" onclick="toggleLogFilter(this, -1)">全部</button>
+    <button class="filter-btn" onclick="toggleLogFilter(this, 0x100)">0x100</button>
+    <button class="filter-btn" onclick="toggleLogFilter(this, 0x101)">0x101</button>
+    <button class="filter-btn" onclick="toggleLogFilter(this, 0x102)">0x102</button>
+    <span style="flex:1;"></span>
+    <button onclick="clearLog()" style="font-size:11px;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 8px;border-radius:4px;cursor:pointer;">清空</button>
+    <label style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;cursor:pointer;">
+      <input type="checkbox" id="chk-autoscroll" checked> 自动滚动
+    </label>
+  </div>
+  <div id="log-table"><table><thead><tr><th>时间</th><th>方向</th><th>ID</th><th>DLC</th><th>数据 (HEX)</th><th>解析</th></tr></thead><tbody id="log-tbody"></tbody></table></div>
+</div>
+
+<script>
+// ======================================================================
+// CAN Protocol Constants
+// ======================================================================
+const CAN_ID_CHASSIS_CMD    = 0x100;
+const CAN_ID_CHASSIS_STATUS = 0x101;
+const CAN_ID_MOTOR_RPM      = 0x102;
+const CHASSIS_FLAG_ENABLE   = 0x01;
+const COMMAND_TIMEOUT_MS    = 500;
+
+// ======================================================================
+// Global State
+// ======================================================================
+const state = {
+  connected: false,
+  simMode: true,
+  autoSend: true,
+  enable: false,
+  cmd: { lin: 0, ang: 0, flags: 0 },
+  telemetry: {
+    actualLin: 0, actualAng: 0,
+    status: 0, leftCurrent: 0, rightCurrent: 0,
+    leftRPM: 0, rightRPM: 0,
+  },
+  stats: { rxCount: 0, txCount: 0, rate: 0, lastRateTs: 0, rateFrames: 0 },
+  logFilter: -1,
+  logEntries: [],
+};
+
+// ======================================================================
+// Gauge Class (Canvas-based semicircular gauge)
+// ======================================================================
+class Gauge {
+  constructor(canvasId, minVal, maxVal, unit, ticks, colorFunc) {
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext('2d');
+    this.w = this.canvas.width;
+    this.h = this.canvas.height;
+    this.cx = this.w / 2;
+    this.cy = this.h * 0.65;
+    this.r = Math.min(this.w, this.h) * 0.38;
+    this.min = minVal;
+    this.max = maxVal;
+    this.unit = unit;
+    this.ticks = ticks || 5;
+    this.value = 0;
+    this.target = 0;
+    this.colorFunc = colorFunc || (v => v < 0.6 ? '#3fb950' : v < 0.85 ? '#d2991d' : '#f85149');
+    this._drawStatic();
+  }
+
+  _drawStatic() {
+    const ctx = this.ctx, cx = this.cx, cy = this.cy, r = this.r;
+    ctx.clearRect(0, 0, this.w, this.h);
+
+    // arc track
+    const startAngle = 0.75 * Math.PI; // 135°
+    const endAngle   = 2.25 * Math.PI; // 405°
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.strokeStyle = '#21262d';
+    ctx.lineWidth = 14;
+    ctx.stroke();
+
+    // tick marks
+    for (let i = 0; i <= this.ticks; i++) {
+      const frac = i / this.ticks;
+      const angle = startAngle + frac * (endAngle - startAngle);
+      const innerR = i % this.ticks === 0 || this.ticks <= 5 ? r - 14 : r - 8;
+      const outerR = r + 2;
+      const x1 = cx + innerR * Math.cos(angle);
+      const y1 = cy + innerR * Math.sin(angle);
+      const x2 = cx + outerR * Math.cos(angle);
+      const y2 = cy + outerR * Math.sin(angle);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+      ctx.strokeStyle = i % this.ticks === 0 ? '#8b949e' : '#30363d';
+      ctx.lineWidth = i % this.ticks === 0 ? 2 : 1;
+      ctx.stroke();
+
+      // tick label
+      if (i % this.ticks === 0 || (this.ticks > 5 && i % 2 === 0)) {
+        const val = this.min + frac * (this.max - this.min);
+        const lr = r + 22;
+        const lx = cx + lr * Math.cos(angle);
+        const ly = cy + lr * Math.sin(angle);
+        ctx.fillStyle = '#8b949e';
+        ctx.font = '9px ' + getComputedStyle(document.body).fontFamily;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(Math.round(val), lx, ly);
+      }
+    }
+  }
+
+  setValue(v) { this.target = Math.max(this.min, Math.min(this.max, v)); }
+  setValueInstant(v) { this.value = Math.max(this.min, Math.min(this.max, v)); this.target = this.value; }
+
+  update() {
+    // smooth
+    this.value += (this.target - this.value) * 0.3;
+    if (Math.abs(this.target - this.value) < 1) this.value = this.target;
+
+    const ctx = this.ctx, cx = this.cx, cy = this.cy, r = this.r;
+    const startAngle = 0.75 * Math.PI;
+    const endAngle   = 2.25 * Math.PI;
+    const frac = (this.value - this.min) / (this.max - this.min);
+    const valAngle = startAngle + frac * (endAngle - startAngle);
+
+    // redraw value arc
+    ctx.clearRect(0, 0, this.w, this.h);
+    this._drawStatic();
+
+    // colored arc
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, valAngle);
+    ctx.strokeStyle = this.colorFunc(frac);
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // needle
+    const nr = r - 20;
+    const nx = cx + nr * Math.cos(valAngle);
+    const ny = cy + nr * Math.sin(valAngle);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(nx, ny);
+    ctx.strokeStyle = '#f85149';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // center cap
+    ctx.beginPath();
+    ctx.arc(cx, cy, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = '#161b22';
+    ctx.fill();
+    ctx.strokeStyle = '#30363d';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // digital value
+    ctx.fillStyle = '#e6edf3';
+    ctx.font = 'bold 20px ' + getComputedStyle(document.body).fontFamily.split(',')[0];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(Math.round(this.value), cx, cy - 12);
+
+    // unit
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
+    ctx.fillText(this.unit, cx, cy + 12);
+  }
+}
+
+// ======================================================================
+// Strip Chart — scrolling velocity tracking
+// ======================================================================
+class StripChart {
+  constructor(canvasId) {
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext('2d');
+    this.w = this.canvas.width;
+    this.h = this.canvas.height;
+    this.buffer = [];        // {t, target, actual}
+    this.windowSec = 10;     // time window in seconds
+    this.yMin = -2200;
+    this.yMax = 2200;
+    this.maxSamples = 300;
+  }
+
+  addSample(timestamp, targetLin, actualLin) {
+    this.buffer.push({ t: timestamp, target: targetLin, actual: actualLin });
+    while (this.buffer.length > 1 && this.buffer[this.buffer.length - 1].t - this.buffer[0].t > this.windowSec * 1000) {
+      this.buffer.shift();
+    }
+    if (this.buffer.length > this.maxSamples) this.buffer.shift();
+  }
+
+  draw() {
+    const ctx = this.ctx, w = this.w, h = this.h;
+    ctx.clearRect(0, 0, w, h);
+
+    const margin = { top: 18, right: 14, bottom: 22, left: 40 };
+    const pw = w - margin.left - margin.right;
+    const ph = h - margin.top - margin.bottom;
+
+    // clip region
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(margin.left, margin.top, pw, ph);
+    ctx.clip();
+
+    // grid
+    ctx.strokeStyle = '#1e2530';
+    ctx.lineWidth = 1;
+    const ySteps = 4;
+    for (let i = 0; i <= ySteps; i++) {
+      const y = margin.top + (ph / ySteps) * i;
+      ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(margin.left + pw, y); ctx.stroke();
+    }
+    const xSteps = 5;
+    for (let i = 0; i <= xSteps; i++) {
+      const x = margin.left + (pw / xSteps) * i;
+      ctx.beginPath(); ctx.moveTo(x, margin.top); ctx.lineTo(x, margin.top + ph); ctx.stroke();
+    }
+
+    // zero line
+    const zeroY = margin.top + ph * (this.yMax / (this.yMax - this.yMin));
+    ctx.strokeStyle = '#30363d';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath(); ctx.moveTo(margin.left, zeroY); ctx.lineTo(margin.left + pw, zeroY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // data
+    if (this.buffer.length < 2) { ctx.restore(); return; }
+    const now = this.buffer[this.buffer.length - 1].t;
+    const tMin = now - this.windowSec * 1000;
+    const tRange = this.windowSec * 1000;
+    const vRange = this.yMax - this.yMin;
+
+    const toX = (t) => margin.left + ((t - tMin) / tRange) * pw;
+    const toY = (v) => margin.top + ((this.yMax - v) / vRange) * ph;
+
+    // target line
+    ctx.strokeStyle = '#58a6ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    let first = true;
+    for (const p of this.buffer) {
+      const sx = toX(p.t), sy = toY(p.target);
+      if (first) { ctx.moveTo(sx, sy); first = false; }
+      else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+
+    // actual line
+    ctx.strokeStyle = '#3fb950';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    first = true;
+    for (const p of this.buffer) {
+      const sx = toX(p.t), sy = toY(p.actual);
+      if (first) { ctx.moveTo(sx, sy); first = false; }
+      else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Y axis labels
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '8px ' + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i <= ySteps; i++) {
+      const val = this.yMax - (this.yMax - this.yMin) * (i / ySteps);
+      const y = margin.top + (ph / ySteps) * i;
+      ctx.fillText(val + '', margin.left - 4, y);
+    }
+    // unit
+    ctx.fillStyle = '#484f58';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('mm/s', margin.left - 4, margin.top - 12);
+
+    // X axis labels
+    ctx.fillStyle = '#8b949e';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let i = 0; i <= xSteps; i++) {
+      const sec = -(this.windowSec - (this.windowSec / xSteps) * i);
+      const x = margin.left + (pw / xSteps) * i;
+      ctx.fillText(sec.toFixed(1) + 's', x, margin.top + ph + 4);
+    }
+
+    // legend
+    const lx = margin.left + 8, ly = margin.top + 3;
+    ctx.font = '9px ' + getComputedStyle(document.body).fontFamily;
+    // target
+    ctx.fillStyle = '#58a6ff';
+    ctx.fillRect(lx, ly, 12, 3);
+    ctx.fillStyle = '#e6edf3';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('目标 Target', lx + 16, ly - 2);
+    // actual
+    ctx.fillStyle = '#3fb950';
+    ctx.fillRect(lx + 82, ly, 12, 3);
+    ctx.fillStyle = '#e6edf3';
+    ctx.fillText('实际 Actual', lx + 98, ly - 2);
+
+    // latest value readout
+    if (this.buffer.length > 0) {
+      const last = this.buffer[this.buffer.length - 1];
+      ctx.fillStyle = '#e6edf3';
+      ctx.font = 'bold 13px ' + getComputedStyle(document.body).fontFamily.split(',')[0];
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('目标 ' + last.target + '  |  实际 ' + last.actual + ' mm/s', w - margin.right, h - 2);
+    }
+  }
+}
+
+// ======================================================================
+// CAN Simulator
+// ======================================================================
+class CANSimulator {
+  constructor() {
+    this.simLin = 0;
+    this.simAng = 0;
+    this.simLRPM = 0;
+    this.simRRPM = 0;
+    this.enabled = false;
+    this.lastCmdTime = 0;
+  }
+
+  feedCommand(lin, ang, enable) {
+    this.enabled = enable;
+    if (!enable) { this.simLin = 0; this.simAng = 0; return; }
+    this.simLin = lin;
+    this.simAng = ang;
+    this.lastCmdTime = performance.now();
+  }
+
+  update(dt) {
+    if (!this.enabled) {
+      this.simLRPM *= 0.9;
+      this.simRRPM *= 0.9;
+      if (Math.abs(this.simLRPM) < 1) this.simLRPM = 0;
+      if (Math.abs(this.simRRPM) < 1) this.simRRPM = 0;
+    } else {
+      // inverse kinematics: v_l = v - ω*b/2, v_r = v + ω*b/2
+      // assume wheelbase = 0.3m, wheel radius = 0.05m
+      const wheelbase = 300;  // mm
+      const wheelRadius = 50; // mm
+      const linMMs = this.simLin;
+      const angRads = this.simAng / 1000; // mrad/s → rad/s
+      const vL = linMMs - angRads * wheelbase / 2;
+      const vR = linMMs + angRads * wheelbase / 2;
+      const targetLRPM = (vL / (2 * Math.PI * wheelRadius)) * 60;
+      const targetRRPM = (vR / (2 * Math.PI * wheelRadius)) * 60;
+
+      // smooth approach
+      this.simLRPM += (targetLRPM - this.simLRPM) * Math.min(dt * 5, 1);
+      this.simRRPM += (targetRRPM - this.simRRPM) * Math.min(dt * 5, 1);
+    }
+
+    const wheelbase = 300;
+    const wheelRadius = 50;
+    const vLa = (this.simLRPM / 60) * (2 * Math.PI * wheelRadius);
+    const vRa = (this.simRRPM / 60) * (2 * Math.PI * wheelRadius);
+    const actualLin = (vLa + vRa) / 2;
+    const actualAng = ((vRa - vLa) / wheelbase) * 1000; // rad/s → mrad/s
+
+    const status = this.enabled ? 0x03 : 0x00;
+    const leftCurr = Math.abs(this.simLRPM) * 0.002 + Math.random() * 0.3;
+    const rightCurr = Math.abs(this.simRRPM) * 0.002 + Math.random() * 0.3;
+
+    return {
+      actualLin: Math.round(actualLin),
+      actualAng: Math.round(actualAng),
+      status: status,
+      leftCurrent: Math.round(leftCurr * 10) / 10,
+      rightCurrent: Math.round(rightCurr * 10) / 10,
+      leftRPM: Math.round(this.simLRPM),
+      rightRPM: Math.round(this.simRRPM),
+    };
+  }
+}
+
+// ======================================================================
+// Initialize Objects
+// ======================================================================
+const gaugeTargetLin = new Gauge('gauge-target-lin', -2000, 2000, 'mm/s', 8, v => v < 0.5 ? '#3fb950' : v < 0.75 ? '#d2991d' : '#f85149');
+const gaugeActualLin = new Gauge('gauge-actual-lin', -2000, 2000, 'mm/s', 8);
+const gaugeAng       = new Gauge('gauge-ang', -2000, 2000, 'mrad/s', 8, v => v < 0.5 ? '#a371f7' : v < 0.75 ? '#d2991d' : '#f85149');
+const gaugeRPML      = new Gauge('gauge-rpm-l', -3000, 3000, 'RPM', 6, v => v < 0.5 ? '#39d2c0' : v < 0.75 ? '#f0883e' : '#f85149');
+const gaugeRPMR      = new Gauge('gauge-rpm-r', -3000, 3000, 'RPM', 6, v => v < 0.5 ? '#39d2c0' : v < 0.75 ? '#f0883e' : '#f85149');
+const stripChart    = new StripChart('strip-chart');
+const simulator      = new CANSimulator();
+
+let ws = null;
+let lastTime = performance.now();
+let lastAutoSend = 0;
+let lastCmdTimestamp = 0;
+
+// ======================================================================
+// CAN Log
+// ======================================================================
+function addLogEntry(dir, id, data, parsed) {
+  const now = new Date();
+  const ts = now.toTimeString().slice(0, 8) + '.' + String(now.getMilliseconds()).padStart(3, '0');
+  state.logEntries.unshift({ ts, dir, id, data, parsed });
+  if (state.logEntries.length > 200) state.logEntries.pop();
+  if (state.logFilter >= 0 && id !== state.logFilter) return;
+  renderLogEntry({ ts, dir, id, data, parsed });
+}
+
+function renderLogEntry(entry) {
+  const tbody = document.getElementById('log-tbody');
+  const row = document.createElement('tr');
+  const hex = Array.from(entry.data).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+  row.innerHTML = `<td>${entry.ts}</td>
+    <td class="${entry.dir === 'RX' ? 'dir-rx' : 'dir-tx'}">${entry.dir}</td>
+    <td>0x${entry.id.toString(16).toUpperCase()}</td>
+    <td>${entry.data.length}</td>
+    <td>${hex}</td>
+    <td>${entry.parsed}</td>`;
+  tbody.prepend(row);
+  // limit displayed rows
+  while (tbody.children.length > 100) tbody.lastChild.remove();
+}
+
+function renderAllLog() {
+  document.getElementById('log-tbody').innerHTML = '';
+  const filter = state.logFilter;
+  const entries = filter < 0 ? state.logEntries : state.logEntries.filter(e => e.id === filter);
+  for (const e of entries.slice(0, 100)) renderLogEntry(e);
+}
+
+function clearLog() { state.logEntries = []; document.getElementById('log-tbody').innerHTML = ''; }
+
+function toggleLogFilter(btn, id) {
+  state.logFilter = id;
+  document.querySelectorAll('#panel-log .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAllLog();
+}
+
+// ======================================================================
+// CAN Message Parsing & Formatting
+// ======================================================================
+function parseChassisStatus(data) {
+  const lin = new DataView(data.buffer).getInt16(0, true);
+  const ang = new DataView(data.buffer).getInt16(2, true);
+  const status = data[4];
+  const lCurr = data[5] * 0.1;
+  const rCurr = data[6] * 0.1;
+  return { lin, ang, status, lCurr, rCurr };
+}
+
+function parseMotorRPM(data) {
+  const lRPM = new DataView(data.buffer).getInt16(0, true);
+  const rRPM = new DataView(data.buffer).getInt16(2, true);
+  return { lRPM, rRPM };
+}
+
+function formatChassisStatus(data) {
+  const s = parseChassisStatus(data);
+  return `v=${s.lin}mm/s ω=${s.ang}mrad/s st=0b${s.status.toString(2)} IL=${s.lCurr.toFixed(1)}A IR=${s.rCurr.toFixed(1)}A`;
+}
+
+function formatMotorRPM(data) {
+  const m = parseMotorRPM(data);
+  return `L=${m.lRPM}RPM R=${m.rRPM}RPM`;
+}
+
+function formatChassisCmd(data) {
+  const lin = new DataView(data.buffer).getInt16(0, true);
+  const ang = new DataView(data.buffer).getInt16(2, true);
+  const en = (data[4] & 0x01) ? 'ON' : 'OFF';
+  return `v=${lin}mm/s ω=${ang}mrad/s EN=${en}`;
+}
+
+// ======================================================================
+// Send Command (to CAN or simulator)
+// ======================================================================
+function buildCommandData() {
+  const buf = new Uint8Array(8);
+  const dv = new DataView(buf.buffer);
+  dv.setInt16(0, state.cmd.lin, true);
+  dv.setInt16(2, state.cmd.ang, true);
+  buf[4] = state.enable ? CHASSIS_FLAG_ENABLE : 0x00;
+  buf[5] = 0; buf[6] = 0; buf[7] = 0;
+  return buf;
+}
+
+function sendCommand() {
+  const data = buildCommandData();
+  state.stats.txCount++;
+  document.getElementById('stat-tx').textContent = state.stats.txCount;
+  lastCmdTimestamp = performance.now();
+
+  if (state.simMode) {
+    simulator.feedCommand(state.cmd.lin, state.cmd.ang, state.enable);
+  } else if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'send', id: CAN_ID_CHASSIS_CMD, data: Array.from(data) }));
+  }
+
+  addLogEntry('TX', CAN_ID_CHASSIS_CMD, data, formatChassisCmd(data));
+}
+
+function emergencyStop() {
+  state.cmd.lin = 0;
+  state.cmd.ang = 0;
+  state.enable = false;
+  syncControlsToState();
+  sendCommand();
+}
+
+// ======================================================================
+// Process received telemetry
+// ======================================================================
+function processTelemetry(frameId, data) {
+  if (frameId === CAN_ID_CHASSIS_STATUS) {
+    const s = parseChassisStatus(data);
+    state.telemetry.actualLin = s.lin;
+    state.telemetry.actualAng = s.ang;
+    state.telemetry.status = s.status;
+    state.telemetry.leftCurrent = s.lCurr;
+    state.telemetry.rightCurrent = s.rCurr;
+    addLogEntry('RX', CAN_ID_CHASSIS_STATUS, data, formatChassisStatus(data));
+  } else if (frameId === CAN_ID_MOTOR_RPM) {
+    const m = parseMotorRPM(data);
+    state.telemetry.leftRPM = m.lRPM;
+    state.telemetry.rightRPM = m.rRPM;
+    addLogEntry('RX', CAN_ID_MOTOR_RPM, data, formatMotorRPM(data));
+  }
+}
+
+// ======================================================================
+// UI Sync
+// ======================================================================
+function syncControlsToState() {
+  document.getElementById('slider-lin').value = state.cmd.lin;
+  document.getElementById('input-lin').value = state.cmd.lin;
+  document.getElementById('slider-ang').value = state.cmd.ang;
+  document.getElementById('input-ang').value = state.cmd.ang;
+  document.getElementById('toggle-enable').checked = state.enable;
+}
+
+function syncStateToTelemetry() {
+  const t = state.telemetry;
+  gaugeActualLin.setValue(t.actualLin);
+  gaugeRPML.setValue(t.leftRPM);
+  gaugeRPMR.setValue(t.rightRPM);
+  document.getElementById('curr-l').textContent = t.leftCurrent.toFixed(1);
+  document.getElementById('curr-r').textContent = t.rightCurrent.toFixed(1);
+  document.getElementById('curr-bar-l').style.width = Math.min(t.leftCurrent * 10, 100) + '%';
+  document.getElementById('curr-bar-r').style.width = Math.min(t.rightCurrent * 10, 100) + '%';
+  document.getElementById('actual-ang-text').textContent = t.actualAng + ' mrad/s';
+
+  // status indicators
+  const s = t.status;
+  document.getElementById('ind-l-run').className = 'indicator' + ((s & 0x01) ? ' on' : '');
+  document.getElementById('ind-r-run').className = 'indicator' + ((s & 0x02) ? ' on' : '');
+  document.getElementById('ind-l-fault').className = 'indicator' + ((s & 0x04) ? ' fault' : '');
+  document.getElementById('ind-r-fault').className = 'indicator' + ((s & 0x08) ? ' fault' : '');
+  document.getElementById('ind-enable').className = 'indicator' + (state.enable ? ' on' : '');
+
+  // timeout indicator
+  const elapsed = performance.now() - lastCmdTimestamp;
+  const timeout = elapsed > COMMAND_TIMEOUT_MS;
+  document.getElementById('ind-timeout').className = 'indicator' + (timeout ? ' fault' : '');
+  document.getElementById('timeout-display').textContent = state.enable ? Math.round(elapsed) + ' ms' : '— ms';
+}
+
+// ======================================================================
+// Connection
+// ======================================================================
+function toggleSimMode() {
+  state.simMode = !state.simMode;
+  const btn = document.getElementById('btn-sim');
+  btn.classList.toggle('active', state.simMode);
+  btn.textContent = state.simMode ? '模拟' : 'CAN';
+  updateConnectionUI();
+}
+
+function toggleConnection() {
+  if (state.simMode) { toggleSimMode(); return; }
+  if (ws) { ws.close(); ws = null; state.connected = false; }
+  else {
+    // try connecting to local CAN bridge
+    const host = prompt('CAN桥接地址 (默认 localhost:8765):', 'localhost:8765');
+    if (!host) return;
+    try {
+      ws = new WebSocket('ws://' + host);
+      ws.onopen = () => { state.connected = true; updateConnectionUI(); };
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === 'frame') {
+            state.stats.rxCount++;
+            state.stats.rateFrames++;
+            processTelemetry(msg.id, new Uint8Array(msg.data));
+          }
+        } catch(e) {}
+      };
+      ws.onclose = () => { state.connected = false; updateConnectionUI(); };
+      ws.onerror = () => { state.connected = false; updateConnectionUI(); };
+    } catch(e) { alert('连接失败: ' + e.message); }
+  }
+  updateConnectionUI();
+}
+
+function updateConnectionUI() {
+  const dot = document.getElementById('dot-conn');
+  const text = document.getElementById('conn-text');
+  dot.className = 'dot';
+  if (state.simMode) { dot.classList.add('sim'); text.textContent = '模拟模式'; }
+  else if (state.connected) { dot.classList.add('ok'); text.textContent = 'CAN已连接'; }
+  else { dot.classList.add('err'); text.textContent = 'CAN未连接'; }
+}
+
+// ======================================================================
+// Main Loop
+// ======================================================================
+function mainLoop(timestamp) {
+  requestAnimationFrame(mainLoop);
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.1); // cap at 100ms
+  lastTime = timestamp;
+
+  // FPS counter
+  state.stats.rateFrames++;
+  if (timestamp - state.stats.lastRateTs > 1000) {
+    state.stats.rate = state.stats.rateFrames;
+    state.stats.rateFrames = 0;
+    state.stats.lastRateTs = timestamp;
+    document.getElementById('stat-rate').textContent = state.stats.rate;
+    document.getElementById('stat-rx').textContent = state.stats.rxCount;
+  }
+
+  // simulator
+  if (state.simMode) {
+    // send simulated telemetry at ~100Hz
+    const telemetry = simulator.update(dt);
+    state.telemetry = { ...state.telemetry, ...telemetry };
+    // artificially add log entries at reduced rate to avoid spam
+    if (Math.random() < 0.1) {
+      state.stats.rxCount++;
+      // build fake CAN data for logging
+      const statusData = new Uint8Array(8);
+      const dv1 = new DataView(statusData.buffer);
+      dv1.setInt16(0, telemetry.actualLin, true);
+      dv1.setInt16(2, telemetry.actualAng, true);
+      statusData[4] = telemetry.status;
+      statusData[5] = Math.round(telemetry.leftCurrent * 10);
+      statusData[6] = Math.round(telemetry.rightCurrent * 10);
+      addLogEntry('RX', CAN_ID_CHASSIS_STATUS, statusData, formatChassisStatus(statusData));
+
+      const rpmData = new Uint8Array(8);
+      const dv2 = new DataView(rpmData.buffer);
+      dv2.setInt16(0, telemetry.leftRPM, true);
+      dv2.setInt16(2, telemetry.rightRPM, true);
+      addLogEntry('RX', CAN_ID_MOTOR_RPM, rpmData, formatMotorRPM(rpmData));
+    }
+  }
+
+  // auto send
+  if (state.autoSend && state.enable && timestamp - lastAutoSend > 100) {
+    lastAutoSend = timestamp;
+    sendCommand();
+  }
+
+  // update gauges
+  gaugeTargetLin.setValue(state.cmd.lin);
+  gaugeTargetLin.update();
+  gaugeActualLin.update();
+  gaugeAng.setValue(state.telemetry.actualAng);
+  gaugeAng.update();
+  gaugeRPML.update();
+  gaugeRPMR.update();
+
+  // strip chart: feed velocity data
+  stripChart.addSample(timestamp, state.cmd.lin, state.telemetry.actualLin);
+  stripChart.draw();
+
+  // status
+  syncStateToTelemetry();
+}
+
+// ======================================================================
+// Event Bindings
+// ======================================================================
+function bindSlider(sliderId, inputId, setter) {
+  const slider = document.getElementById(sliderId);
+  const input = document.getElementById(inputId);
+  slider.addEventListener('input', () => {
+    input.value = slider.value;
+    setter(parseInt(slider.value));
+    if (!state.autoSend) gaugeTargetLin.setValue(state.cmd.lin);
+  });
+  input.addEventListener('change', () => {
+    const v = parseInt(input.value);
+    if (!isNaN(v)) {
+      slider.value = Math.max(parseInt(slider.min), Math.min(parseInt(slider.max), v));
+      input.value = slider.value;
+      setter(parseInt(slider.value));
+      if (!state.autoSend) gaugeTargetLin.setValue(state.cmd.lin);
+    }
+  });
+}
+
+bindSlider('slider-lin', 'input-lin', v => { state.cmd.lin = v; });
+bindSlider('slider-ang', 'input-ang', v => { state.cmd.ang = v; });
+document.getElementById('toggle-enable').addEventListener('change', function() {
+  state.enable = this.checked;
+});
+document.getElementById('toggle-auto').addEventListener('change', function() {
+  state.autoSend = this.checked;
+  document.getElementById('btn-send').classList.toggle('auto', this.checked);
+  document.getElementById('btn-send').textContent = this.checked ? '自动发送中 AUTO' : '发送命令 SEND';
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  switch(e.key) {
+    case ' ':
+      e.preventDefault();
+      if (state.enable) { emergencyStop(); } else { state.enable = true; syncControlsToState(); sendCommand(); }
+      break;
+    case 'e':
+      if (!e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        state.enable = !state.enable;
+        syncControlsToState();
+        if (state.enable && !state.autoSend) sendCommand();
+      }
+      break;
+    case 'Escape':
+      emergencyStop();
+      break;
+  }
+});
+
+// ======================================================================
+// Initialization
+// ======================================================================
+function init() {
+  updateConnectionUI();
+  document.getElementById('btn-send').classList.add('auto');
+  document.getElementById('btn-send').textContent = '自动发送中 AUTO';
+  lastTime = performance.now();
+  lastCmdTimestamp = performance.now();
+  requestAnimationFrame(mainLoop);
+}
+
+init();
+</script>
+</body>
+</html>
