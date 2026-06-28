@@ -26,6 +26,8 @@ CAN_RxHeaderTypeDef RxHeader; // 接收报文头
 uint8_t RxData[8]; // 接收数据缓冲区
 uint32_t TxMailbox; // 发送邮箱号
 
+uint8_t g_can_bus_off_flag = 0;  // CAN Bus-Off 标志，由错误回调置位
+
 /**
  * @brief 解析并处理接收到的 CAN 消息（在任务上下文中调用）
  */
@@ -114,10 +116,9 @@ HAL_StatusTypeDef CAN_Send_HAL(CAN_Message_t* message)
 }
 
 /**
- * @brief 发送底盘状态帧 (CAN ID 0x101)
+ * @brief 发送底盘综合状态帧 (CAN ID 0x101, ~100Hz)
  *
- * 从 Chassis_t 读取实际速度和电机状态，按协议组帧并送入 TX 队列。
- * 在控制循环中每周期调用一次（~100Hz）。
+ * 合并原 0x101 状态帧与 0x102 转速帧：上报 RPM、运行状态、使能回显、心跳。
  */
 void CAN_SendChassisStatus(Chassis_t* c)
 {
@@ -127,23 +128,27 @@ void CAN_SendChassisStatus(Chassis_t* c)
         return;
     }
 
-    int16_t linear_mm    = (int16_t)(c->actual_linear_vel  * 1000.0f);
-    int16_t angular_mrad = (int16_t)(c->actual_angular_vel * 1000.0f);
+    static uint8_t heartbeat = 0;
+
+    int16_t rpm_left  = (int16_t)(c->motor_left->rpm);
+    int16_t rpm_right = (int16_t)(c->motor_right->rpm);
 
     tx->StdId = CAN_ID_CHASSIS_STATUS;
     tx->Len   = 8;
-    tx->Data[0] = (uint8_t)(linear_mm & 0xFF);
-    tx->Data[1] = (uint8_t)((linear_mm >> 8) & 0xFF);
-    tx->Data[2] = (uint8_t)(angular_mrad & 0xFF);
-    tx->Data[3] = (uint8_t)((angular_mrad >> 8) & 0xFF);
-
+    tx->Data[0] = (uint8_t)(rpm_left & 0xFF);
+    tx->Data[1] = (uint8_t)((rpm_left >> 8) & 0xFF);
+    tx->Data[2] = (uint8_t)(rpm_right & 0xFF);
+    tx->Data[3] = (uint8_t)((rpm_right >> 8) & 0xFF);
     tx->Data[4] = 0;
-    if (Motor_IsRunning(c->motor_left))  tx->Data[4] |= 0x01;
-    if (Motor_IsRunning(c->motor_right)) tx->Data[4] |= 0x02;
+    tx->Data[5] = 0;
 
-    tx->Data[5] = (uint8_t)(Motor_GetTotalCurrent(c->motor_left)  * 10.0f);
-    tx->Data[6] = (uint8_t)(Motor_GetTotalCurrent(c->motor_right) * 10.0f);
-    tx->Data[7] = 0;
+    tx->Data[6] = 0;
+    if (Motor_IsRunning(c->motor_left))  tx->Data[6] |= CHASSIS_STATUS_LEFT_RUN;
+    if (Motor_IsRunning(c->motor_right)) tx->Data[6] |= CHASSIS_STATUS_RIGHT_RUN;
+    if (c->cmd_enable)                   tx->Data[6] |= CHASSIS_STATUS_ENABLED;
+    if (Chassis_IsCommandValid(c))       tx->Data[6] |= CHASSIS_STATUS_CMD_VALID;
+
+    tx->Data[7] = heartbeat++;
 
     if (xQueueSendToBack(canTxQueue, &tx, 0) != pdTRUE)
     {
@@ -152,11 +157,11 @@ void CAN_SendChassisStatus(Chassis_t* c)
 }
 
 /**
- * @brief 发送电机转速帧 (CAN ID 0x102)
+ * @brief 发送底盘诊断帧 (CAN ID 0x103, ~10Hz)
  *
- * 上报左右电机当前 RPM，在控制循环中每周期调用一次（~100Hz）。
+ * 上报故障码、PWM 占空比、PID 误差。
  */
-void CAN_SendMotorRPM(Chassis_t* c)
+void CAN_SendChassisDiag(Chassis_t* c)
 {
     CAN_Message_t* tx = pvPortMalloc(sizeof(CAN_Message_t));
     if (tx == NULL)
@@ -164,18 +169,24 @@ void CAN_SendMotorRPM(Chassis_t* c)
         return;
     }
 
-    int16_t rpm_left  = (int16_t)(c->motor_left->rpm);
-    int16_t rpm_right = (int16_t)(c->motor_right->rpm);
+    uint8_t fault = 0;
+    if (Motor_GetTotalCurrent(c->motor_left)  > MOTOR_OVERCURRENT_THRESHOLD_A) fault |= CHASSIS_FAULT_LEFT_OC;
+    if (Motor_GetTotalCurrent(c->motor_right) > MOTOR_OVERCURRENT_THRESHOLD_A) fault |= CHASSIS_FAULT_RIGHT_OC;
+    if (g_can_bus_off_flag)                                                      fault |= CHASSIS_FAULT_CAN_BUSOFF;
+    if (!Chassis_IsCommandValid(c))                                              fault |= CHASSIS_FAULT_CMD_TIMEOUT;
 
-    tx->StdId = CAN_ID_MOTOR_RPM;
+    int16_t err_left  = (int16_t)(Motor_SpeedPID_GetError(c->motor_left));
+    int16_t err_right = (int16_t)(Motor_SpeedPID_GetError(c->motor_right));
+
+    tx->StdId = CAN_ID_CHASSIS_DIAG;
     tx->Len   = 8;
-    tx->Data[0] = (uint8_t)(rpm_left & 0xFF);
-    tx->Data[1] = (uint8_t)((rpm_left >> 8) & 0xFF);
-    tx->Data[2] = (uint8_t)(rpm_right & 0xFF);
-    tx->Data[3] = (uint8_t)((rpm_right >> 8) & 0xFF);
-    tx->Data[4] = 0;
-    tx->Data[5] = 0;
-    tx->Data[6] = 0;
+    tx->Data[0] = fault;
+    tx->Data[1] = (uint8_t)(Motor_GetDutyCycle(c->motor_left)  * 250 / 1000);
+    tx->Data[2] = (uint8_t)(Motor_GetDutyCycle(c->motor_right) * 250 / 1000);
+    tx->Data[3] = (uint8_t)(err_left & 0xFF);
+    tx->Data[4] = (uint8_t)((err_left >> 8) & 0xFF);
+    tx->Data[5] = (uint8_t)(err_right & 0xFF);
+    tx->Data[6] = (uint8_t)((err_right >> 8) & 0xFF);
     tx->Data[7] = 0;
 
     if (xQueueSendToBack(canTxQueue, &tx, 0) != pdTRUE)
