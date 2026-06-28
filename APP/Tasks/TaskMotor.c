@@ -148,12 +148,19 @@ void vTask_Data_Send(void* parameter)
 void vTask_SpeedControl(void* parameter)
 {
     const TickType_t xDelayTime = pdMS_TO_TICKS(10);
+    uint8_t diag_counter = 0;
 
     while (1)
     {
         Chassis_Control(&g_chassis);
         CAN_SendChassisStatus(&g_chassis);
-        CAN_SendMotorRPM(&g_chassis);
+
+        if (++diag_counter >= 10)
+        {
+            CAN_SendChassisDiag(&g_chassis);
+            diag_counter = 0;
+        }
+
         vTaskDelay(xDelayTime);
     }
 }
