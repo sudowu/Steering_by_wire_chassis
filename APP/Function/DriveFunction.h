@@ -1,7 +1,7 @@
 #ifndef __DriveFunction_H__
 #define __DriveFunction_H__
 
-#include "TaskSbwControl.h"
+#include "SbwTypes.h"
 
 void DriveFunction_Init(Drive_Function* df);
 
