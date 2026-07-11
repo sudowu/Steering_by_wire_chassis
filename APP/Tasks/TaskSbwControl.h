@@ -21,8 +21,8 @@ typedef enum {
 //转向控制
 typedef struct {
     uint8_t Steering_Config_Enable;     //使能
-    uint8_t Target_Steeing_Angle;     //目标转向角度  1(deg)
-    uint8_t Target_Steeing_Speed;     //目标转向速度  1(deg/s)
+    uint8_t Target_Steering_Angle;     //目标转向角度  1(deg)
+    uint8_t Target_Steering_Speed;     //目标转向速度  1(deg/s)
 }Steering_Control;
 
 //转向反馈
