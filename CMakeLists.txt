@@ -48,7 +48,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         APP/Tasks/TaskCanInfo.c
         APP/Tasks/TaskMotor.c
         APP/Tasks/TaskSeriel.c
-        APP/Tasks/TaskSbwCan.c
+        APP/Tasks/TaskSbwControl.c
         Device/Src/Motor.c
         Device/Src/PID.c
         Device/Src/Filter.c

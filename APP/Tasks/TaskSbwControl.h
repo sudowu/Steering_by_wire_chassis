@@ -1,5 +1,5 @@
-#ifndef __TaskSbwCan_H__
-#define __TaskSbwCan_H__
+#ifndef __TaskSbwControl_H__
+#define __TaskSbwControl_H__
 #include "main.h"
 #include "FreeRTOS.h"
 /********************************************
