@@ -47,8 +47,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
         APP/Tasks/TaskCanInfo.c
         APP/Tasks/TaskMotor.c
-        Device/Src/Motor.c
         APP/Tasks/TaskSeriel.c
+        APP/Tasks/TaskSbwCan.c
+        Device/Src/Motor.c
         Device/Src/PID.c
         Device/Src/Filter.c
         Device/Src/Kinematics.c
