@@ -49,19 +49,25 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         APP/Tasks/TaskMotor.c
         APP/Tasks/TaskSeriel.c
         APP/Tasks/TaskSbwControl.c
+        APP/Chassis.c
+        APP/Function/SteeringFunction.c
+        APP/Function/DriveFunction.c
+        APP/Function/BrakingFunction.c
+        APP/Function/GearFunction.c
+        APP/Function/ParkingFunction.c
 
         Device/Src/Motor.c
         Device/Src/PID.c
         Device/Src/Filter.c
         Device/Src/Kinematics.c
-        Device/Src/Chassis.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+        APP
         APP/Tasks
-
+        APP/Function
         Device/Inc
 )
 

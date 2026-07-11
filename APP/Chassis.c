@@ -10,6 +10,12 @@
 
 Chassis_t g_chassis;
 
+/**
+ * @brief 底盘初始化，绑定左右电机并清零控制指令
+ * @param c 底盘实例指针
+ * @param left 左电机指针
+ * @param right 右电机指针
+ */
 void Chassis_Init(Chassis_t* c, Motor_t* left, Motor_t* right)
 {
     c->motor_left  = left;
@@ -27,11 +33,24 @@ void Chassis_Init(Chassis_t* c, Motor_t* left, Motor_t* right)
     c->initialized = 1;
 }
 
+/**
+ * @brief 判断最后收到的控制指令是否有效（未超时）
+ * @param c 底盘实例指针
+ * @return 1-有效，0-超时
+ */
 uint8_t Chassis_IsCommandValid(const Chassis_t* c)
 {
     return (HAL_GetTick() - c->cmd_timestamp) < CHASSIS_COMMAND_TIMEOUT_MS;
 }
 
+/**
+ * @brief 底盘主控制循环（每周期调用）
+ *
+ * 使能且指令有效时执行逆运动学控制；失能或超时时执行两阶段安全停机，
+ * 最后通过正运动学更新实际车速供状态上报使用。
+ *
+ * @param c 底盘实例指针
+ */
 void Chassis_Control(Chassis_t* c)
 {
     if (!c->initialized)
