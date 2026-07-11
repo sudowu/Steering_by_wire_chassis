@@ -49,6 +49,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         APP/Tasks/TaskMotor.c
         APP/Tasks/TaskSeriel.c
         APP/Tasks/TaskSbwControl.c
+
         Device/Src/Motor.c
         Device/Src/PID.c
         Device/Src/Filter.c
@@ -60,6 +61,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
         APP/Tasks
+
         Device/Inc
 )
 

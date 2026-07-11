@@ -2,6 +2,9 @@
 #define __TaskSbwControl_H__
 #include "main.h"
 #include "FreeRTOS.h"
+
+
+
 /********************************************
 *驾驶模式
 ********************************************/
@@ -142,4 +145,22 @@ typedef struct {
     Parking_Control Parking_Control;      //驻车控制
     Parking_Feedback Parking_Feedback;    //驻车反馈
 }Parking_Function;
+
+/********************************************
+*线控底盘控制功能
+********************************************/
+typedef struct {
+    Steering_Function Steering_Function;    //线控转向功能
+    Drive_Function Drive_Function;          //线控驱动功能
+    Braking_Function Braking_Function;      //线控制动功能
+    Gear_Function Gear_Function;            //线控档位功能
+    Parking_Function Parking_Function;      //线控驻车功能
+}Chassis_Function;
+
+extern Chassis_Function Chassis_Function_instance;
+
+
+
+
+
 #endif
