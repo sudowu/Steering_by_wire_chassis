@@ -114,6 +114,7 @@ void MotionControl_Update(const Chassis_Function* cf,
         float decel = state->emergency_stop
                       ? MC_EMERGENCY_STOP_DECEL
                       : MC_MAX_LINEAR_DECEL;
+        /*dv速度差值 */              
         float dv = decel * dt;
 
         if (fabsf(state->current_v_cmd) < dv)

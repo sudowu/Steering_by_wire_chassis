@@ -91,6 +91,10 @@ void Error_Handler(void);
 #define PM2_PWM_VL_GPIO_Port GPIOH
 #define PM2_PWM_WL_Pin GPIO_PIN_15
 #define PM2_PWM_WL_GPIO_Port GPIOH
+#define PARK_RIGHT_Pin GPIO_PIN_4
+#define PARK_RIGHT_GPIO_Port GPIOB
+#define PARK_LEFT_Pin GPIO_PIN_5
+#define PARK_LEFT_GPIO_Port GPIOB
 #define PM2_HALLW_Pin GPIO_PIN_8
 #define PM2_HALLW_GPIO_Port GPIOB
 #define LED0_Pin GPIO_PIN_0
