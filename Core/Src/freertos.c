@@ -30,6 +30,7 @@
 #include "TaskCanInfo.h"
 #include "TaskMotor.h"
 #include "TaskSeriel.h"
+#include "TaskSbwControl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -148,6 +149,7 @@ void StartDefaultTask(void *argument)
   xTaskCreate(vTaskSeriel,"Serial Task", 128, NULL, osPriorityNormal, &g_TaskSeriel);
   xTaskCreate(vTaskMotor,"Motor Task", 512, NULL, osPriorityNormal, &g_TaskMotor);
   xTaskCreate(vTask_Data_Send, "Data Send Task", 256, NULL, osPriorityNormal, NULL);
+  xTaskCreate(vTaskSbwControl, "SbW Control Task", 256, NULL, osPriorityNormal+2, NULL);
   taskEXIT_CRITICAL();
   /* Infinite loop */
   vTaskDelete(NULL);

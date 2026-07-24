@@ -196,6 +196,10 @@ typedef struct {
     Braking_Function Braking_Function;      // 线控制动功能
     Gear_Function Gear_Function;            // 线控档位功能
     Parking_Function Parking_Function;      // 线控驻车功能
+
+    driving_mode Current_Mode;              // 全局驾驶模式（由 MotionControl 仲裁）
+    uint8_t Fault_Summary;                  // 故障汇总码：0-正常，非零-存在故障
+    uint32_t Last_Command_Tick;             // 最后收到有效上位机指令的时间戳
 } Chassis_Function;
 
 /** 全局底盘功能实例，定义在 TaskSbwControl.c */
