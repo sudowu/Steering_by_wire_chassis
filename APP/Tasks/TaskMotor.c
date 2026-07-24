@@ -114,8 +114,8 @@ void vTaskRPM_Get(TimerHandle_t xTimer)
 void vTask_ADC_Sample(void* parameter)
 {
     float total_current = 0;
-    float filtered_current = 0;
-    uint8_t erro_sum = 0;
+    // float filtered_current = 0;
+    // uint8_t erro_sum = 0;
     LowPassFilter current_lpf;
     MedianFilter3 current_median = {0};
     lpf_init(&current_lpf, 0.3f);
