@@ -1,5 +1,18 @@
+/**
+ * @file    BrakingFunction.c
+ * @brief   线控制动功能实现
+ */
+
 #include "BrakingFunction.h"
 
+/**
+ * @brief 初始化制动功能模块
+ *
+ * 将所有控制字段归零、反馈置为手动模式、人工接管和越界阈值清零。
+ * 该函数仅做结构体初始化，不涉及硬件操作。
+ *
+ * @param bf 制动功能实例指针
+ */
 void BrakingFunction_Init(Braking_Function* bf)
 {
     bf->Braking_Control.Braking_Config_Enable         = 0;
