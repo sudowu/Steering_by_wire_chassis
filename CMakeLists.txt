@@ -62,6 +62,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         Device/Src/Filter.c
         Device/Src/Kinematics.c
         Device/Src/Parking.c
+        Device/Src/Gear.c
 )
 
 # Add include paths
