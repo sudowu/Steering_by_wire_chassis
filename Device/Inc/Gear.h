@@ -62,8 +62,8 @@ typedef struct {
     #endif
 
     /* 状态 */
-    Gear_ActState_t state;
-    Gear_Fault_t    fault;
+    Gear_ActState_t state;          // 执行器当前状态
+    Gear_Fault_t    fault;          // 当前故障码
     Gear_Position   current;        // 当前实际档位
     Gear_Position   target;         // 目标档位
     uint32_t        shift_start_tick;  // 换档开始时刻
