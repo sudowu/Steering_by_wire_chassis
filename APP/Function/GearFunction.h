@@ -35,17 +35,23 @@ void GearFunction_Init(Gear_Function* gf);
  *
  * 决策逻辑：
  *   1. 读取 Gear_Control.Target_Gear_Position
- *   2. 安全互锁检查（车速、当前档位）
+ *   2. 安全互锁检查（车速、当前档位、驾驶模式）
  *   3. 通过 → Gear_Actuator_SetPosition()
  *   4. 拒绝 → 反馈沿用当前档位，不执行
  *   5. 同步执行器状态到 Gear_Feedback
  *
+ * 模式差异：
+ *   - manual 模式：所有换档操作均需车速归零
+ *   - auto 模式：  P/R 需停车，N↔D 任意速度允许
+ *
  * @param gf         档位功能实例
  * @param actuator   档位执行器实例
  * @param vehicle_speed_mps  当前车速 (m/s)，绝对值，用于安全互锁
+ * @param is_auto_mode      0=manual（全部等停），1=auto（N/D不等停）
  */
 void GearFunction_Update(Gear_Function* gf,
                          Gear_Actuator_t* actuator,
-                         float vehicle_speed_mps);
+                         float vehicle_speed_mps,
+                         uint8_t is_auto_mode);
 
 #endif

@@ -56,6 +56,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         APP/Function/GearFunction.c
         APP/Function/ParkingFunction.c
         APP/Function/MotionControl.c
+        APP/Function/DrivingModeFunction.c
 
         Device/Src/Motor.c
         Device/Src/PID.c

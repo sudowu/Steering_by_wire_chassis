@@ -4,10 +4,10 @@
  *
  * 五层优先级控制架构：
  *
- *   Layer 0 — 驾驶模式仲裁
+ *   Layer 0 — 驾驶模式检查（由 DrivingModeFunction 统一仲裁）
  *     automatic:   正常执行上位机指令
- *     interrupted: 人工接管触发，执行安全停机
- *     manual:      人工驾驶模式（当前预留）
+ *     interrupted: 人工接管触发 → emergency_stop 急减速 (5 m/s²)
+ *     manual:      TaskSbwControl 传入 manual 实例，走相同五层管线（不含接管检测）
  *
  *   Layer 1 — 安全门（硬件级安全约束，不可绕过）
  *     Parking EPB 夹紧 → v=0, ω=0
@@ -48,10 +48,7 @@
  * 内部函数声明（static，仅本文件可见）
  * ================================================================ */
 
-/** Layer 0: 遍历五个模块的人工接管标志，仲裁全局驾驶模式 */
-static driving_mode MC_ArbitrateMode(const Chassis_Function* cf);
-
-/** Layer 1: 安全门检查。返回 0=禁止运动（执行停机），1=允许通过 */
+/** Layer 1: 安全门检查（含驾驶模式）。返回 0=禁止运动（执行停机），1=允许通过 */
 static uint8_t MC_SafetyGate(const Chassis_Function* cf,
                              MotionControl_State_t* state,
                              float* out_dir_sign);
@@ -100,12 +97,17 @@ void MotionControl_Update(const Chassis_Function* cf,
     }
 
     /* ================================================================
-     * Layer 0: 驾驶模式仲裁
+     * Layer 0: 驾驶模式（由 DrivingModeFunction 统一仲裁）
+     *
+     * automatic / manual → 走完整五层管线
+     * interrupted        → emergency_stop 急减速
+     *
+     * 自动与手动共用 Drive_Control / Steering_Control / Braking_Control，
+     * 区别仅在于 DrivingModeFunction：接管/越界只打断 automatic。
      * ================================================================ */
-    (void)MC_ArbitrateMode(cf);
 
     /* ================================================================
-     * Layer 1: 安全门
+     * Layer 1: 安全门（automatic 和 interrupted 到达此处）
      * ================================================================ */
     float dir_sign = 1.0f;
     if (!MC_SafetyGate(cf, state, &dir_sign))
@@ -164,7 +166,8 @@ void MotionControl_Update(const Chassis_Function* cf,
 driving_mode MotionControl_GetMode(const MotionControl_State_t* state)
 {
     (void)state;
-    /* 当前驾驶模式暂未保存在 state 中，始终返回 automatic */
+    /* 当前以 Chassis_Function.Current_Mode 为权威来源，
+     * 此处仅保留占位接口。调用方应通过 DrivingModeFunction_Update 的返回值获取模式。 */
     return automatic;
 }
 
@@ -174,26 +177,13 @@ uint8_t MotionControl_IsEmergencyStop(const MotionControl_State_t* state)
 }
 
 /* ================================================================
- * Layer 0: 驾驶模式仲裁
- * ================================================================ */
-
-static driving_mode MC_ArbitrateMode(const Chassis_Function* cf)
-{
-    uint8_t takeover =
-        cf->Steering_Function.Manual_Takeover ||
-        cf->Drive_Function.Manual_Takeover     ||
-        cf->Braking_Function.Manual_Takeover;
-
-    if (takeover)
-    {
-        return interrupted;
-    }
-
-    return automatic;
-}
-
-/* ================================================================
- * Layer 1: 安全门
+ * Layer 1: 安全门（含驾驶模式检查）
+ *
+ * 检查顺序（优先级从高到低）：
+ *   1.0 驾驶模式: non-automatic → emergency_stop, 禁止运动
+ *   1.1 EPB 驻车: clamped → 禁止运动
+ *   1.2 档位: P/N → 禁止运动, R → 方向取反
+ *   1.3 故障: 任一模块报错 → emergency_stop
  * ================================================================ */
 
 static uint8_t MC_SafetyGate(const Chassis_Function* cf,
@@ -201,6 +191,15 @@ static uint8_t MC_SafetyGate(const Chassis_Function* cf,
                              float* out_dir_sign)
 {
     *out_dir_sign = 1.0f;
+
+    /* 1.0: 驾驶模式 — interrupted 紧急制动
+     *      manual 由 TaskSbwControl 层拦截（跳过 MC，保留 CAN 直控）
+     *      mode 由 DrivingModeFunction 统一仲裁，本层只做判决 */
+    if (cf->Current_Mode == interrupted)
+    {
+        state->emergency_stop = 1;
+        return 0;
+    }
 
     /* 1.1: EPB 驻车夹紧 → 禁止一切运动 */
     if (cf->Parking_Function.Parking_Control.Parking_Request)

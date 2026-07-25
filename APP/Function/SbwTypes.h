@@ -19,6 +19,32 @@
 
 #include "main.h"
 
+/* ================================================================
+ * SbW CAN 帧 ID 占位符（协议待定，当前仅作占位）
+ * ================================================================ */
+
+/* 上层自动驾驶指令帧 */
+#define CAN_ID_SBW_AUTO_STEERING    0x200   // 自动转向指令帧
+#define CAN_ID_SBW_AUTO_DRIVE       0x201   // 自动驱动指令帧
+#define CAN_ID_SBW_AUTO_GEAR        0x202   // 自动档位指令帧
+#define CAN_ID_SBW_AUTO_BRAKE       0x203   // 自动制动指令帧
+
+/* 物理输入帧（人工驾驶侧）*/
+#define CAN_ID_SBW_MANUAL_GEAR      0x210   // 物理档位选择器
+#define CAN_ID_SBW_MANUAL_STEERING  0x211   // 物理方向盘（扭矩 / 转角）
+#define CAN_ID_SBW_MANUAL_ACCEL     0x212   // 物理油门踏板
+#define CAN_ID_SBW_MANUAL_BRAKE     0x213   // 物理制动踏板
+
+/* ================================================================
+ * 人工接管阈值（可独立标定）
+ * ================================================================ */
+
+/* 制动踏板接管阈值：0.1% per LSB，50 = 5% 踏板行程 */
+#define TAKEOVER_BRAKE_PEDAL_THRESHOLD      50
+
+/* 加速踏板接管阈值：1% per LSB，50 = 50% 踏板行程 */
+#define TAKEOVER_ACCEL_PEDAL_THRESHOLD      50
+
 /********************************************
  * 驾驶模式枚举
  ********************************************/
@@ -188,7 +214,7 @@ typedef struct {
  * 线控底盘总控 (Chassis Function Aggregate)
  *
  * 聚合五大线控功能模块，作为底盘控制的顶层入口。
- * 全局实例 Chassis_Function_instance 由 TaskSbwControl 任务持有。
+ * 全局实例 g_chassis_auto / g_chassis_manual 由 TaskSbwControl 任务持有。
  ********************************************/
 typedef struct {
     Steering_Function Steering_Function;    // 线控转向功能
@@ -202,7 +228,10 @@ typedef struct {
     uint32_t Last_Command_Tick;             // 最后收到有效上位机指令的时间戳
 } Chassis_Function;
 
-/** 全局底盘功能实例，定义在 TaskSbwControl.c */
-extern Chassis_Function Chassis_Function_instance;
+/** 自动驾驶实例 — 接收上层 CAN 指令，定义在 TaskSbwControl.c */
+extern Chassis_Function g_chassis_auto;
+
+/** 人工驾驶实例 — 接收物理输入 CAN 帧，定义在 TaskSbwControl.c */
+extern Chassis_Function g_chassis_manual;
 
 #endif

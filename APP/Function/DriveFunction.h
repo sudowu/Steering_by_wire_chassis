@@ -21,4 +21,16 @@
  */
 void DriveFunction_Init(Drive_Function* df);
 
+/**
+ * @brief 驱动功能周期更新（每 10ms 调用）
+ *
+ * 负责人工接管检测：当加速踏板位置 ≥ TAKEOVER_ACCEL_PEDAL_THRESHOLD 时，
+ * 置位 Manual_Takeover，由 DrivingModeFunction 统一仲裁模式切换。
+ *
+ * 同时将控制指令同步到反馈字段，供 CAN 状态帧上报使用。
+ *
+ * @param df 驱动功能实例指针
+ */
+void DriveFunction_Update(Drive_Function* df);
+
 #endif

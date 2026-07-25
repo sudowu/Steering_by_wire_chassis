@@ -23,12 +23,15 @@ void GearFunction_Init(Gear_Function* gf)
 }
 
 /**
- * @brief 判断换档请求是否满足安全条件
+ * @brief 判断换档请求是否满足安全条件（模式感知）
  *
- * 返回 1=允许换档, 0=安全互锁拒绝
+ * manual 模式：所有换档必须车速归零
+ * auto 模式：  P/R 需要停车，N↔D 允许任意速度
+ *
+ * @return 1=允许换档, 0=安全互锁拒绝
  */
 static uint8_t Gear_CheckSafety(Gear_Position from, Gear_Position to,
-                                float speed_mps)
+                                float speed_mps, uint8_t is_auto_mode)
 {
     /* 同档位不换 */
     if (from == to)
@@ -36,25 +39,29 @@ static uint8_t Gear_CheckSafety(Gear_Position from, Gear_Position to,
         return 1;
     }
 
+    uint8_t is_stopped = (speed_mps < GEAR_SAFE_SPEED_THRESHOLD) ? 1 : 0;
+
+    /* manual 模式：所有换档必须等停车 */
+    if (!is_auto_mode)
+    {
+        return is_stopped;
+    }
+
+    /* auto 模式安全规则 */
+
     /* 涉及 P 档 → 必须停车 */
     if (from == P || to == P)
     {
-        return (speed_mps < GEAR_SAFE_SPEED_THRESHOLD) ? 1 : 0;
+        return is_stopped;
     }
 
-    /* D ↔ R 方向切换 → 必须停车 */
-    if ((from == D && to == R) || (from == R && to == D))
+    /* 涉及 R 档 → 必须停车（行进中换向危险） */
+    if (from == R || to == R)
     {
-        return (speed_mps < GEAR_SAFE_SPEED_THRESHOLD) ? 1 : 0;
+        return is_stopped;
     }
 
-    /* N → R → 必须停车 */
-    if (from == N && to == R)
-    {
-        return (speed_mps < GEAR_SAFE_SPEED_THRESHOLD) ? 1 : 0;
-    }
-
-    /* D → N, N → D, R → N: 允许 */
+    /* N ↔ D：允许任意速度执行 */
     return 1;
 }
 
@@ -63,7 +70,8 @@ static uint8_t Gear_CheckSafety(Gear_Position from, Gear_Position to,
  */
 void GearFunction_Update(Gear_Function* gf,
                          Gear_Actuator_t* actuator,
-                         float vehicle_speed_mps)
+                         float vehicle_speed_mps,
+                         uint8_t is_auto_mode)
 {
     /* ---- 故障检查 ---- */
     if (actuator->fault != GEAR_FAULT_NONE)
@@ -100,7 +108,7 @@ void GearFunction_Update(Gear_Function* gf,
     }
 
     /* ---- 安全互锁检查 ---- */
-    if (!Gear_CheckSafety(current, target, vehicle_speed_mps))
+    if (!Gear_CheckSafety(current, target, vehicle_speed_mps, is_auto_mode))
     {
         /* 拒绝换档：反馈保持当前档位，不执行 */
         gf->Gear_Feedback.Gear_Position_Status = current;

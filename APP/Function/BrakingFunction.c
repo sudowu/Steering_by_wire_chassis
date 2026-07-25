@@ -12,8 +12,7 @@
 #define BRAKE_LIGHT_ON_THRESHOLD    5    // ≥0.5 m/s² 减速度 → 亮灯
 #define BRAKE_LIGHT_OFF_THRESHOLD   2    // <0.2 m/s² 减速度 → 熄灯
 
-/* 人工接管检测：制动踏板位置阈值 (0.1%) */
-#define MANUAL_TAKEOVER_PEDAL_THRESHOLD  50  // ≥5% 视为人工踩踏板
+/* 人工接管检测：使用 SbwTypes.h 中的公共阈值 TAKEOVER_BRAKE_PEDAL_THRESHOLD */
 
 /* 指令合法性上限（uint8_t 自身限幅 0..255，此处仅校验减速度）*/
 #define MAX_VALID_DECELERATION      100  // 10.0 m/s² (合理上限)
@@ -111,26 +110,22 @@ void BrakingFunction_Update(Braking_Function* bf)
     fb->Braking_Pedal_Position = ctrl->Target_Braking_Pedal_Position;
 
     /* ================================================================
-     * Step 4: 驾驶模式反馈
+     * Step 4: 人工接管检测
+     *
+     * 驾驶模式（automatic/interrupted/manual）由 DrivingModeFunction
+     * 统一仲裁并通过 DriveMode_SyncToModules() 写入
+     * fb->Current_Braking_System_Driving_Mode，本函数不干预。
+     *
+     * 本函数只负责上报接管信号（制动踏板 → Manual_Takeover），
+     * DrivingModeFunction 在下一个周期汇总所有接管源后统一切换模式。
      * ================================================================ */
 
-    if (ctrl->Braking_Config_Enable)
+    if (ctrl->Target_Braking_Pedal_Position >= TAKEOVER_BRAKE_PEDAL_THRESHOLD)
     {
-        fb->Current_Braking_System_Driving_Mode = automatic;
-
-        /* 人工接管：制动踏板被踩下 → 触发接管 */
-        if (ctrl->Target_Braking_Pedal_Position >= MANUAL_TAKEOVER_PEDAL_THRESHOLD)
-        {
-            bf->Manual_Takeover = 1;
-        }
-        else
-        {
-            bf->Manual_Takeover = 0;
-        }
+        bf->Manual_Takeover = 1;
     }
     else
     {
-        fb->Current_Braking_System_Driving_Mode = manual;
         bf->Manual_Takeover = 0;
     }
 }

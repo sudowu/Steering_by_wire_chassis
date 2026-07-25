@@ -24,6 +24,8 @@ typedef struct
 
 /* ==================== CAN 应用层协议 ==================== */
 
+/* ---- 调试帧（直接底盘控制，不参与模式逻辑）---- */
+
 /* 底盘速度指令 ID */
 #define CAN_ID_CHASSIS_CMD         0x100
 
@@ -32,6 +34,34 @@ typedef struct
 
 /* 底盘诊断信息 ID */
 #define CAN_ID_CHASSIS_DIAG        0x103
+
+/* ---- SbW 上层自动驾驶指令帧（占位符，协议待定）---- */
+
+/* 自动转向 */
+#define CAN_ID_SBW_AUTO_STEERING   0x200
+
+/* 自动驱动 */
+#define CAN_ID_SBW_AUTO_DRIVE      0x201
+
+/* 自动档位 */
+#define CAN_ID_SBW_AUTO_GEAR       0x202
+
+/* 自动制动 */
+#define CAN_ID_SBW_AUTO_BRAKE      0x203
+
+/* ---- SbW 物理输入帧（占位符，协议待定）---- */
+
+/* 物理档位选择器 */
+#define CAN_ID_SBW_MANUAL_GEAR     0x210
+
+/* 物理方向盘（转角 + 扭矩）*/
+#define CAN_ID_SBW_MANUAL_STEERING 0x211
+
+/* 物理油门踏板 */
+#define CAN_ID_SBW_MANUAL_ACCEL    0x212
+
+/* 物理制动踏板 */
+#define CAN_ID_SBW_MANUAL_BRAKE    0x213
 
 /* 底盘速度指令格式 (ID 0x100, 8 bytes)
  *  Byte[0-1]:  线速度 (int16, 单位: mm/s, scale 1)
@@ -88,6 +118,11 @@ typedef struct
 #define MOTOR_OVERCURRENT_THRESHOLD_A  10.0f
 
 #include "Chassis.h"
+#include "SbwTypes.h"
+
+/* SbW 双实例引用（定义在 TaskSbwControl.c）*/
+extern Chassis_Function g_chassis_auto;
+extern Chassis_Function g_chassis_manual;
 
 /* ==================== 函数声明 ==================== */
 
