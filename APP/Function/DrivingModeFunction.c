@@ -65,13 +65,14 @@ static uint8_t DriveMode_HasTakeover(const Chassis_Function* cf_auto,
 }
 
 /**
- * @brief 检测物理档位与自动模式指令档位是否不匹配
+ * @brief 检测物理档位是否不在 D 挡
  *
- * 当自动模式使能且物理档位 != 自动指令档位时，视为人工接管。
+ * 当自动模式使能且物理档位 != D 时，视为人工接管。
+ * 只有 D 挡允许自动驾驶，R/N/P 均触发接管。
  *
- * @param cf_auto     自动驾驶实例（读取 Gear_Control.Target_Gear_Position）
+ * @param cf_auto     自动驾驶实例（读取 Gear_Control.Gear_Config_Enable）
  * @param cf_manual   人工驾驶实例（读取 Gear_Feedback.Gear_Position_Status）
- * @return 1=不匹配，0=匹配或 auto 档位未使能
+ * @return 1=非 D 挡（触发接管），0=D 挡或 auto 档位未使能
  */
 static uint8_t DriveMode_GearMismatch(const Chassis_Function* cf_auto,
                                        const Chassis_Function* cf_manual)
@@ -83,9 +84,8 @@ static uint8_t DriveMode_GearMismatch(const Chassis_Function* cf_auto,
     }
 
     Gear_Position phys_gear = cf_manual->Gear_Function.Gear_Feedback.Gear_Position_Status;
-    Gear_Position auto_gear = cf_auto->Gear_Function.Gear_Control.Target_Gear_Position;
 
-    return (phys_gear != auto_gear) ? 1 : 0;
+    return (phys_gear != D) ? 1 : 0;
 }
 
 /**
