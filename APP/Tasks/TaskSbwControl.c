@@ -37,6 +37,7 @@
 #include "GearFunction.h"
 #include "ParkingFunction.h"
 #include "DrivingModeFunction.h"
+#include "TaskCanInfo.h"
 
 /* ---- 全局实例 ---- */
 Chassis_Function g_chassis_auto   = {0};   // 自动驾驶实例（接收上层 CAN 指令）
@@ -304,6 +305,50 @@ void vTaskSbwControl(void* parameter)
             g_chassis_manual.Parking_Function.Parking_Feedback.Parking_status_feedback = epb_clamped;
         }
 
-        /* TODO: 发送 SbW 状态反馈帧（CAN ID 待定，以实际物理状态为准）*/
+        /* ================================================================
+         * Step 11: 分频发送 SbW 状态反馈帧
+         *
+         * 以活跃实例 (active) 的真实物理状态为数据源，
+         * 按优先级分频: 运动状态/转向 50Hz, 驱动/制动 20Hz,
+         * 档位驻车 10Hz, MC 调试 5Hz。
+         * ================================================================ */
+        {
+            static uint8_t tx_cycle = 0;
+            tx_cycle++;
+
+            /* 50Hz: 每 2 周期 (100Hz/2) */
+            if (tx_cycle % 2 == 0)
+            {
+                uint8_t sys_flags = 0;
+                if (MotionControl_IsEmergencyStop(&mc_state))
+                    sys_flags |= SBW_FLAG_EMERGENCY_STOP;
+                if (SbwIsActive(active))
+                    sys_flags |= SBW_FLAG_SBW_ACTIVE;
+
+                CAN_SendSbwVehicleState(&g_chassis, current_mode,
+                                        sys_flags, active->Fault_Summary);
+                CAN_SendSbwSteeringFB(&active->Steering_Function);
+            }
+
+            /* 20Hz: 每 5 周期 */
+            if (tx_cycle % 5 == 0)
+            {
+                CAN_SendSbwDriveFB(&active->Drive_Function);
+                CAN_SendSbwBrakingFB(&active->Braking_Function);
+            }
+
+            /* 10Hz: 每 10 周期 */
+            if (tx_cycle % 10 == 0)
+            {
+                CAN_SendSbwGearParkingFB(&active->Gear_Function,
+                                         &active->Parking_Function);
+            }
+
+            /* 5Hz: 每 20 周期 */
+            if (tx_cycle % 20 == 0)
+            {
+                CAN_SendSbwMCDetail(&mc_state, &g_chassis);
+            }
+        }
     }
 }
