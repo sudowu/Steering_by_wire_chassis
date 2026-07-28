@@ -22,4 +22,31 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# 构建可执行文件
+add_executable(can_drive_node src/can_drive.cpp)
+target_include_directories(can_drive_node PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/can_drive
+)
+ament_target_dependencies(can_drive_node
+  rclcpp
+  std_msgs
+)
+target_link_directories(can_drive_node PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib
+)
+target_link_libraries(can_drive_node
+  controlcan
+)
+
+# 安装
+install(TARGETS can_drive_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY lib/
+  DESTINATION lib/${PROJECT_NAME}
+  FILES_MATCHING PATTERN "*.so"
+)
+
 ament_package()
