@@ -17,12 +17,14 @@
 #include "main.h"
 #include "TaskMotor.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "adc.h"
 #include "Motor.h"
 #include "queue.h"
+#include "stm32f4xx_hal_gpio.h"
 #include "task.h"
 #include "TaskSeriel.h"
 #include "tim.h"
@@ -97,7 +99,7 @@ void vTaskRPM_Get(TimerHandle_t xTimer)
 {
     motor_rpm_get(g_chassis.motor_left);
     motor_rpm_get(g_chassis.motor_right);
-    HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
+    // HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
 }
 
 /* ==================== ADC 电流采样任务 ==================== */
@@ -160,7 +162,7 @@ void vTask_Data_Send(void* parameter)
             vPortFree(info_rpm);
         }
 
-        HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+        
         vTaskDelay(pdMS_TO_TICKS(30));
     }
 }
@@ -180,7 +182,7 @@ void vTask_SpeedControl(void* parameter)
 {
     const TickType_t xDelayTime = pdMS_TO_TICKS(10);
     uint8_t diag_counter = 0;
-
+    uint8_t led_counter = 0;
     while (1)
     {
         Chassis_Control(&g_chassis);
@@ -191,7 +193,10 @@ void vTask_SpeedControl(void* parameter)
             CAN_SendChassisDiag(&g_chassis);
             diag_counter = 0;
         }
-
+        if (++led_counter >= 20) {
+            HAL_GPIO_TogglePin(LED_R_GPIO_Port, LED_R_Pin);
+            led_counter = 0;
+        }
         vTaskDelay(xDelayTime);
     }
 }

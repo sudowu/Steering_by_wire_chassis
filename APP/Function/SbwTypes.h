@@ -20,20 +20,8 @@
 #include "main.h"
 
 /* ================================================================
- * SbW CAN 帧 ID 占位符（协议待定，当前仅作占位）
+ * CAN 帧 ID 定义 — 参见 TaskCanInfo.h（CAN 应用层协议完整定义）
  * ================================================================ */
-
-/* 上层自动驾驶指令帧 */
-#define CAN_ID_SBW_AUTO_STEERING    0x200   // 自动转向指令帧
-#define CAN_ID_SBW_AUTO_DRIVE       0x201   // 自动驱动指令帧
-#define CAN_ID_SBW_AUTO_GEAR        0x202   // 自动档位指令帧
-#define CAN_ID_SBW_AUTO_BRAKE       0x203   // 自动制动指令帧
-
-/* 物理输入帧（人工驾驶侧）*/
-#define CAN_ID_SBW_MANUAL_GEAR      0x210   // 物理档位选择器
-#define CAN_ID_SBW_MANUAL_STEERING  0x211   // 物理方向盘（扭矩 / 转角）
-#define CAN_ID_SBW_MANUAL_ACCEL     0x212   // 物理油门踏板
-#define CAN_ID_SBW_MANUAL_BRAKE     0x213   // 物理制动踏板
 
 /* ================================================================
  * 人工接管阈值（可独立标定）

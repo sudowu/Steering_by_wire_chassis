@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "FreeRTOS.h"
+#include "SbwTypes.h"
 #include "main.h"
 #include "task.h"
 
@@ -16,6 +17,7 @@
 
 #include "Chassis.h"
 #include "Motor.h"
+#include "TaskSbwControl.h"
 
 TaskHandle_t g_TaskCanInfo;
 SemaphoreHandle_t canTxCompleteSemaphore;
@@ -38,15 +40,39 @@ void CAN_ProcessRxMessage(const CAN_Message_t* msg)
         /* ---- 调试帧：直接底盘控制（不参与模式逻辑）---- */
         case CAN_ID_CHASSIS_CMD:
         {
-            /* 解析线速度 (int16, mm/s) */
-            int16_t linear_raw = (int16_t)(msg->Data[0] | ((uint16_t)msg->Data[1] << 8));
-            /* 解析角速度 (int16, mrad/s) */
-            int16_t angular_raw = (int16_t)(msg->Data[2] | ((uint16_t)msg->Data[3] << 8));
+            if (SbwIsActive(&g_chassis_manual)) 
+            {
+              /* 解析线速度 (int16, mm/s) */
+              int16_t linear_raw = (int16_t)(msg->Data[0] | ((uint16_t)msg->Data[1] << 8));
+              /* 解析角速度 (int16, mrad/s) */
+              int16_t angular_raw = (int16_t)(msg->Data[2] | ((uint16_t)msg->Data[3] << 8));
 
-            g_chassis.cmd_linear_vel  = (float)linear_raw / 1000.0f;   // mm/s → m/s
-            g_chassis.cmd_angular_vel = (float)angular_raw / 1000.0f;  // mrad/s → rad/s
-            g_chassis.cmd_enable    = (msg->Data[4] & CHASSIS_FLAG_ENABLE) ? 1 : 0;
-            g_chassis.cmd_timestamp = HAL_GetTick();
+              g_chassis.cmd_linear_vel  = (float)linear_raw / 1000.0f;   // mm/s → m/s
+              g_chassis.cmd_angular_vel = (float)angular_raw / 1000.0f;  // mrad/s → rad/s
+              g_chassis.cmd_enable    = (msg->Data[4] & CHASSIS_FLAG_ENABLE) ? 1 : 0;
+              g_chassis.cmd_timestamp = HAL_GetTick();
+            }
+            break;
+        }
+        /* ---- SbW 全线控使能帧 (ID 0x220) ----
+         * Byte[0]: SbW_Enable (0=关闭, 非0=开启)
+         * Byte[1-7]: 保留
+         *
+         * 同时控制 auto 和 manual 两个实例，确保模式切换时
+         * 两个实例的使能状态保持一致。
+         */
+        case CAN_ID_SBW_CONTROL:
+        {
+            if (msg->Data[0])
+            {
+              SbwEnableAll(&g_chassis_auto);
+              SbwEnableAll(&g_chassis_manual);
+            }
+            else
+            {
+              SbwDisableAll(&g_chassis_auto);
+              SbwDisableAll(&g_chassis_manual);
+            }
             break;
         }
 

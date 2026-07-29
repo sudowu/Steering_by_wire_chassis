@@ -41,5 +41,7 @@ extern Chassis_Function g_chassis_manual;
  * @param parameter 未使用
  */
 void vTaskSbwControl(void* parameter);
-
+uint8_t SbwIsActive(const Chassis_Function* cf);
+void SbwEnableAll(Chassis_Function* cf);
+void SbwDisableAll(Chassis_Function* cf);
 #endif

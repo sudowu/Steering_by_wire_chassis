@@ -97,10 +97,10 @@ void Error_Handler(void);
 #define PARK_LEFT_GPIO_Port GPIOB
 #define PM2_HALLW_Pin GPIO_PIN_8
 #define PM2_HALLW_GPIO_Port GPIOB
-#define LED0_Pin GPIO_PIN_0
-#define LED0_GPIO_Port GPIOE
-#define LED1_Pin GPIO_PIN_1
-#define LED1_GPIO_Port GPIOE
+#define LED_R_Pin GPIO_PIN_0
+#define LED_R_GPIO_Port GPIOE
+#define LED_G_Pin GPIO_PIN_1
+#define LED_G_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

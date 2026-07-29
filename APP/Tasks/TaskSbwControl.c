@@ -24,10 +24,13 @@
 #include "TaskSbwControl.h"
 
 #include "FreeRTOS.h"
+#include "SbwTypes.h"
 #include "main.h"
+#include "stm32f4xx_hal_gpio.h"
 #include "task.h"
 
 #include <math.h>
+#include <stdint.h>
 
 #include "Chassis.h"
 #include "MotionControl.h"
@@ -52,11 +55,38 @@ static DrivingModeFunction_State_t dm_state;       // 驾驶模式状态机
 /**
  * @brief 检查指定实例是否有 SbW 功能模块处于使能状态
  */
-static uint8_t SbwIsActive(const Chassis_Function* cf)
+uint8_t SbwIsActive(const Chassis_Function* cf)
 {
     return cf->Drive_Function.Drive_Control.Driving_Config_Enable         ||
            cf->Steering_Function.Steering_Control.Steering_Config_Enable ||
            cf->Braking_Function.Braking_Control.Braking_Config_Enable;
+}
+
+/**
+ * @brief 使能指定实例的全部 SbW 功能模块
+ *
+ * 将驱动/转向/制动三个控制模块的 Config_Enable 标志位全部置 1。
+ * 用于 CAN 0x100 指令帧的 Enable bit 置位时，激活 SbW 全线控模式。
+ */
+void SbwEnableAll(Chassis_Function* cf)
+{
+    cf->Drive_Function.Drive_Control.Driving_Config_Enable = 1;
+    cf->Steering_Function.Steering_Control.Steering_Config_Enable = 1;
+    cf->Braking_Function.Braking_Control.Braking_Config_Enable = 1;
+}
+
+/**
+ * @brief 禁用指定实例的全部 SbW 功能模块
+ *
+ * 将驱动/转向/制动三个控制模块的 Config_Enable 标志位全部清零。
+ * 用于 CAN 0x100 指令帧的 Enable bit 清零时，退出 SbW 全线控模式，
+ * 回退到调试直控或人工驾驶。
+ */
+void SbwDisableAll(Chassis_Function* cf)
+{
+    cf->Drive_Function.Drive_Control.Driving_Config_Enable = 0;
+    cf->Steering_Function.Steering_Control.Steering_Config_Enable = 0;
+    cf->Braking_Function.Braking_Control.Braking_Config_Enable = 0;
 }
 
 /**
@@ -253,9 +283,10 @@ void vTaskSbwControl(void* parameter)
         /* SbW 未使能 → 跳过 MC，保留 CAN 0x100 调试直控 */
         if (!SbwIsActive(active))
         {
+            HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
             continue;
         }
-
+        HAL_GPIO_TogglePin(LED_G_GPIO_Port, LED_G_Pin);
         active->Last_Command_Tick = HAL_GetTick();
 
         /* ================================================================

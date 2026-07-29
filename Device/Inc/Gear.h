@@ -29,10 +29,10 @@
 
 // #if GEAR_USE_HARDWARE
 /* ---- 默认引脚 ---- */
-#define GEAR_POS0_PIN      LED0_Pin
-#define GEAR_POS0_PORT     LED0_GPIO_Port
-#define GEAR_POS1_PIN      LED1_Pin
-#define GEAR_POS1_PORT     LED1_GPIO_Port
+#define GEAR_POS0_PIN      LED_R_Pin
+#define GEAR_POS0_PORT     LED_R_GPIO_Port
+#define GEAR_POS1_PIN      LED_G_Pin
+#define GEAR_POS1_PORT     LED_G_GPIO_Port
 // #endif
 
 /* ---- 时序 ---- */
