@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(can_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -31,12 +32,20 @@ target_include_directories(can_drive_node PRIVATE
 ament_target_dependencies(can_drive_node
   rclcpp
   std_msgs
+  can_msgs
 )
 target_link_directories(can_drive_node PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 target_link_libraries(can_drive_node
   controlcan
+)
+
+# 设置 RPATH 使可执行文件能在安装目录下找到 libcontrolcan.so
+set_target_properties(can_drive_node PROPERTIES
+  BUILD_RPATH "${CMAKE_CURRENT_SOURCE_DIR}/lib"
+  INSTALL_RPATH "$ORIGIN"
+  LINK_FLAGS "-Wl,--disable-new-dtags"
 )
 
 # 安装
