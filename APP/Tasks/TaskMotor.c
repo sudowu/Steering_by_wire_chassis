@@ -153,9 +153,9 @@ void vTask_Data_Send(void* parameter)
     while (1)
     {
         uint8_t* info_rpm = pvPortMalloc(100);
-        sprintf((char*)info_rpm, "rpm:%f,%f,%d,%d\n",
-                g_chassis.motor_left->rpm, g_chassis.motor_right->rpm,
-                g_chassis.motor_left->pwm_duty, g_chassis.motor_right->pwm_duty);
+        sprintf((char*)info_rpm, "linear:%f,%f\n",
+                g_chassis.cmd_linear_vel,
+                g_chassis.actual_linear_vel);
         g_Motor1.commutating_counter = 0;
         if (xQueueSendToFront(xQueueSeriel, &info_rpm, 0) != pdPASS)
         {
