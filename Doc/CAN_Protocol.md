@@ -106,7 +106,7 @@
 | 字节 | 字段 | 类型 | 单位 | 说明 |
 |------|------|------|------|------|
 | Byte[0] | Steering_Config_Enable | uint8 | — | 0=关闭, 1=使能 |
-| Byte[1] | Target_Steering_Angle | uint8 | 0.5°/LSB | 128=正中 |
+| Byte[1] | Target_Steering_Angle | int8 | 0.5°/LSB | 0=正中, ±128→±64° |
 | Byte[2] | Target_Steering_Speed | uint8 | 1°/s | |
 | Byte[3-7] | 保留 | — | — | |
 
@@ -158,7 +158,7 @@
 
 | 字节 | 字段 | 类型 | 单位 | 说明 |
 |------|------|------|------|------|
-| Byte[0] | Steering_Angle | uint8 | 0.5°/LSB | 128=正中 |
+| Byte[0] | Steering_Angle | int8 | 0.5°/LSB | 0=正中, ±128→±64° |
 | Byte[1] | Steering_Torque | uint8 | 0.1 N·m/LSB | 暂复用 Steering_Speed 字段传递 |
 | Byte[2-7] | 保留 | — | — | |
 

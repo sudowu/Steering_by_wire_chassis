@@ -338,23 +338,33 @@ static float MC_ResolveAngularVelocity(const Chassis_Function* cf,
         return 0.0f;
     }
 
-    /* uint8 [0..255] → 虚拟转向角 (rad) */
+    /* int8 [−128..127] → 虚拟转向角 (rad)
+     * 0 = 直行中心, 正 = 右转, 负 = 左转
+     * 取反后: 左转 → 正 steer_rad → 正曲率 → CCW 角速度 */
     float raw_angle = (float)sc->Target_Steering_Angle;
-    float steer_rad = ((128.0f - raw_angle) / 128.0f) * MC_MAX_STEERING_ANGLE_RAD;
+    float steer_rad = (-raw_angle / 128.0f) * MC_MAX_STEERING_ANGLE_RAD;
+
+    /* 转向中心死区：抑制 SbW 使能后微小角度偏差导致的非预期原地转向 */
+    if (fabsf(steer_rad) < MC_STEERING_DEADBAND_RAD)
+    {
+        return 0.0f;
+    }
 
     /* 曲率 κ = tan(angle) / wheelbase */
     float curvature = tanf(steer_rad) / MC_STEERING_WHEELBASE;
 
-    /* 低速修正：确保原地也能差速转向 */
-    float v_eff = fmaxf(fabsf(v_signed), MC_MIN_SPEED_FOR_STEERING);
-
-    /* 角速度 = 有效线速度 × 曲率 */
-    float w_cmd = v_eff * curvature;
-
-    /* 倒车转向方向反转 */
-    if (v_signed < -MC_VELOCITY_ZERO_THRESHOLD)
+    float w_cmd;
+    if (fabsf(v_signed) < MC_VELOCITY_ZERO_THRESHOLD)
     {
-        w_cmd = -w_cmd;
+        /* 原地差速转向 (tank turn)：线速度几乎为零时使用最低有效速度，
+         * 方向由方向盘角度决定（正曲率=左转→CCW，负曲率=右转→CW）*/
+        w_cmd = MC_MIN_SPEED_FOR_STEERING * curvature;
+    }
+    else
+    {
+        /* 行进中转向：角速度 = 线速度 × 曲率
+         * v_signed 带符号（正=前进, 负=倒车），直接相乘即得正确转向方向 */
+        w_cmd = v_signed * curvature;
     }
 
     return w_cmd;

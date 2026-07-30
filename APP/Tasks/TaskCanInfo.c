@@ -78,7 +78,7 @@ void CAN_ProcessRxMessage(const CAN_Message_t* msg)
 
         /* ---- SbW 自动转向帧 (ID 0x200) ----
          * Byte[0]: Steering_Config_Enable (0=off, 1=on)
-         * Byte[1]: Target_Steering_Angle (uint8, 0.5 deg/LSB, 128=center)
+         * Byte[1]: Target_Steering_Angle (int8, 0.5 deg/LSB, 0=center)
          * Byte[2]: Target_Steering_Speed (uint8, 1 deg/s per LSB)
          * Byte[3-7]: 保留
          */
@@ -167,7 +167,7 @@ void CAN_ProcessRxMessage(const CAN_Message_t* msg)
         }
 
         /* ---- SbW 物理方向盘帧 (ID 0x211) ----
-         * Byte[0]: Steering_Angle (uint8, 0.5 deg/LSB, 128=center)
+         * Byte[0]: Steering_Angle (int8, 0.5 deg/LSB, 0=center)
          * Byte[1]: Steering_Torque (uint8, 0.1 Nm per LSB)
          * Byte[2-7]: 保留
          */

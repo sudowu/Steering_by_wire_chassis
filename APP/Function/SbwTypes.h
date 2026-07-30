@@ -53,7 +53,7 @@ typedef enum {
 // 转向控制指令（上位机 → 底盘）
 typedef struct {
     uint8_t Steering_Config_Enable;     // 转向使能：0-禁用，1-启用
-    uint8_t Target_Steering_Angle;      // 目标转向角度，单位：1 deg
+    int8_t  Target_Steering_Angle;      // 目标转向角度，0=直行中心，单位：0.5 deg/LSB，±128→±64°
     uint8_t Target_Steering_Speed;      // 目标转向速度，单位：1 deg/s
 } Steering_Control;
 

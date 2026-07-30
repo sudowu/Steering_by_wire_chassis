@@ -35,7 +35,8 @@
 /* 转向-曲率模型参数 */
 #define MC_STEERING_WHEELBASE           1.5f    // 虚拟轴距 (m)，用于将转向角映射为曲率
 #define MC_MAX_STEERING_ANGLE_RAD       0.52f   // 最大虚拟转向角 (rad)，≈30°
-#define MC_MIN_SPEED_FOR_STEERING       0.1f    // 转向计算最低速度 (m/s)，避免 v=0 时无转向
+#define MC_MIN_SPEED_FOR_STEERING       0.1f    // 原地转向最低有效速度 (m/s)，用于零速差速转向
+#define MC_STEERING_DEADBAND_RAD        0.0175f // 转向中心死区 (rad)，≈±1°，抑制零速时微小角度偏差
 
 /* 安全约束 */
 #define MC_MAX_LATERAL_ACCEL            3.0f    // 最大侧向加速度 (m/s²)，≈0.3g，防侧翻
