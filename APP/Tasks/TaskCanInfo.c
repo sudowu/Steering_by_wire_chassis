@@ -395,7 +395,7 @@ void CAN_SendSbwSteeringFB(const Steering_Function* sf)
     CAN_Message_t* tx = pvPortMalloc(sizeof(CAN_Message_t));
     if (tx == NULL) return;
 
-    int16_t angle  = (int16_t)(sf->Steering_Feedback.Steering_Angle);           // 0.1°/LSB (同 scale)
+    int16_t angle  = sf->Steering_Feedback.Steering_Angle;           // 0.1°/LSB, 0=正中
     int16_t torque = 0; /* 当前无扭矩传感器, 预留 */
     uint16_t speed  = (uint16_t)(sf->Steering_Feedback.Steering_Speed);       // 1°/s
 

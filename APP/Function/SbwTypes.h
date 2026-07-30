@@ -59,7 +59,7 @@ typedef struct {
 
 // 转向状态反馈（底盘 → 上位机）
 typedef struct {
-    uint8_t Steering_Angle;           // 当前方向盘角度，单位：0.1 deg
+    int16_t Steering_Angle;           // 当前方向盘角度，单位：0.1 deg，0=正中，左转为正
     uint8_t Steering_Speed;           // 当前方向盘转速，单位：1 deg/s
     driving_mode Steering_mode;       // 当前转向驾驶模式
     uint8_t Fault_message;            // 转向系统故障信息
