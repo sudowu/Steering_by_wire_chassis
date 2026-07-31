@@ -40,7 +40,7 @@ void CAN_ProcessRxMessage(const CAN_Message_t* msg)
         /* ---- 调试帧：直接底盘控制（不参与模式逻辑）---- */
         case CAN_ID_CHASSIS_CMD:
         {
-            if (SbwIsActive(&g_chassis_manual)) 
+            if (!SbwIsActive(&g_chassis_manual)) 
             {
               /* 解析线速度 (int16, mm/s) */
               int16_t linear_raw = (int16_t)(msg->Data[0] | ((uint16_t)msg->Data[1] << 8));
@@ -76,138 +76,147 @@ void CAN_ProcessRxMessage(const CAN_Message_t* msg)
             break;
         }
 
-        /* ---- SbW 自动转向帧 (ID 0x200) ----
-         * Byte[0]: Steering_Config_Enable (0=off, 1=on)
-         * Byte[1]: Target_Steering_Angle (int8, 0.5 deg/LSB, 0=center)
-         * Byte[2]: Target_Steering_Speed (uint8, 1 deg/s per LSB)
-         * Byte[3-7]: 保留
-         */
-        case CAN_ID_SBW_AUTO_STEERING:
-        {
-            g_chassis_auto.Steering_Function.Steering_Control.Steering_Config_Enable
-                = msg->Data[0];
-            g_chassis_auto.Steering_Function.Steering_Control.Target_Steering_Angle
-                = msg->Data[1];
-            g_chassis_auto.Steering_Function.Steering_Control.Target_Steering_Speed
-                = msg->Data[2];
-            g_chassis_auto.Last_Command_Tick = HAL_GetTick();
-            break;
-        }
-
-        /* ---- SbW 自动驱动帧 (ID 0x201) ----
-         * Byte[0]: Driving_Config_Enable (0=off, 1=on)
-         * Byte[1]: Target_Accelerator_pedal_Position (uint8, 1% per LSB)
-         * Byte[2]: Target_Longitudinal_Acceleration (uint8, 0.1 m/s² per LSB)
-         * Byte[3]: Target_Driving_Torque (uint8, 1 N·m per LSB)
-         * Byte[4-7]: 保留
-         */
-        case CAN_ID_SBW_AUTO_DRIVE:
-        {
-            g_chassis_auto.Drive_Function.Drive_Control.Driving_Config_Enable
-                = msg->Data[0];
-            g_chassis_auto.Drive_Function.Drive_Control.Target_Accelerator_pedal_Position
-                = msg->Data[1];
-            g_chassis_auto.Drive_Function.Drive_Control.Target_Longitudinal_Acceleration
-                = msg->Data[2];
-            g_chassis_auto.Drive_Function.Drive_Control.Target_Driving_Torque
-                = msg->Data[3];
-            g_chassis_auto.Last_Command_Tick = HAL_GetTick();
-            break;
-        }
-
-        /* ---- SbW 自动档位帧 (ID 0x202) ----
-         * Byte[0]: Gear_Config_Enable (0=off, 1=on)
-         * Byte[1]: Target_Gear_Position (uint8: 0=P, 1=R, 2=N, 3=D)
-         * Byte[2]: Parking_Config_Enable (0=off, 1=on)
-         * Byte[3]: Parking_Request (0=释放, 1=夹紧)
-         * Byte[4-7]: 保留
-         */
-        case CAN_ID_SBW_AUTO_GEAR:
-        {
-            g_chassis_auto.Gear_Function.Gear_Control.Gear_Config_Enable
-                = msg->Data[0];
-            g_chassis_auto.Gear_Function.Gear_Control.Target_Gear_Position
-                = (Gear_Position)msg->Data[1];
-            g_chassis_auto.Parking_Function.Parking_Control.Parking_Config_Enable
-                = msg->Data[2];
-            g_chassis_auto.Parking_Function.Parking_Control.Parking_Request
-                = msg->Data[3];
-            g_chassis_auto.Last_Command_Tick = HAL_GetTick();
-            break;
-        }
-
-        /* ---- SbW 自动制动帧 (ID 0x203) ----
-         * Byte[0]: Braking_Config_Enable (0=off, 1=on)
-         * Byte[1]: Target_Deceleration (uint8, 0.1 m/s² per LSB)
-         * Byte[2]: Break_Light_Control (0=熄灯, 1=亮灯)
-         * Byte[3-7]: 保留
-         */
-        case CAN_ID_SBW_AUTO_BRAKE:
-        {
-            g_chassis_auto.Braking_Function.Braking_Control.Braking_Config_Enable
-                = msg->Data[0];
-            g_chassis_auto.Braking_Function.Braking_Control.Target_Deceleration
-                = msg->Data[1];
-            g_chassis_auto.Braking_Function.Braking_Control.Break_Light_Control
-                = msg->Data[2];
-            g_chassis_auto.Last_Command_Tick = HAL_GetTick();
-            break;
-        }
-
-        /* ---- SbW 物理档位帧 (ID 0x210) ----
-         * Byte[0]: Gear_Position (uint8: 0=P, 1=R, 2=N, 3=D)
-         * Byte[1-7]: 保留
-         */
-        case CAN_ID_SBW_MANUAL_GEAR:
-        {
-            g_chassis_manual.Gear_Function.Gear_Control.Gear_Config_Enable = 1;
-            g_chassis_manual.Gear_Function.Gear_Control.Target_Gear_Position
-                = (Gear_Position)msg->Data[0];
-            break;
-        }
-
-        /* ---- SbW 物理方向盘帧 (ID 0x211) ----
-         * Byte[0]: Steering_Angle (int8, 0.5 deg/LSB, 0=center)
-         * Byte[1]: Steering_Torque (uint8, 0.1 Nm per LSB)
-         * Byte[2-7]: 保留
-         */
-        case CAN_ID_SBW_MANUAL_STEERING:
-        {
-            g_chassis_manual.Steering_Function.Steering_Control.Steering_Config_Enable = 1;
-            g_chassis_manual.Steering_Function.Steering_Control.Target_Steering_Angle
-                = msg->Data[0];
-            /* 物理方向盘扭矩暂复用 Steering_Speed 字段传递 */
-            g_chassis_manual.Steering_Function.Steering_Feedback.Steering_Speed
-                = msg->Data[1];
-            break;
-        }
-
-        /* ---- SbW 物理油门踏板帧 (ID 0x212) ----
-         * Byte[0]: Accelerator_Pedal_Position (uint8, 1% per LSB)
-         * Byte[1-7]: 保留
-         */
-        case CAN_ID_SBW_MANUAL_ACCEL:
-        {
-            g_chassis_manual.Drive_Function.Drive_Control.Driving_Config_Enable = 1;
-            g_chassis_manual.Drive_Function.Drive_Control.Target_Accelerator_pedal_Position
-                = msg->Data[0];
-            break;
-        }
-
-        /* ---- SbW 物理制动踏板帧 (ID 0x213) ----
-         * Byte[0]: Braking_Pedal_Position (uint8, 0.1% per LSB)
-         * Byte[1-7]: 保留
-         */
-        case CAN_ID_SBW_MANUAL_BRAKE:
-        {
-            g_chassis_manual.Braking_Function.Braking_Control.Braking_Config_Enable = 1;
-            g_chassis_manual.Braking_Function.Braking_Control.Target_Braking_Pedal_Position
-                = msg->Data[0];
-            break;
-        }
-
         default:
+        {
+            if (SbwIsActive(&g_chassis_manual))
+            {
+                switch(msg->StdId)
+                {
+                    /* ---- SbW 自动转向帧 (ID 0x200) ----
+                    * Byte[0]: Steering_Config_Enable (0=off, 1=on)
+                    * Byte[1]: Target_Steering_Angle (int8, 0.5 deg/LSB, 0=center)
+                    * Byte[2]: Target_Steering_Speed (uint8, 1 deg/s per LSB)
+                    * Byte[3-7]: 保留
+                    */
+                    case CAN_ID_SBW_AUTO_STEERING:
+                    {
+                        g_chassis_auto.Steering_Function.Steering_Control.Steering_Config_Enable
+                            = msg->Data[0];
+                        g_chassis_auto.Steering_Function.Steering_Control.Target_Steering_Angle
+                            = msg->Data[1];
+                        g_chassis_auto.Steering_Function.Steering_Control.Target_Steering_Speed
+                            = msg->Data[2];
+                        g_chassis_auto.Last_Command_Tick = HAL_GetTick();
+                        break;
+                    }
+
+                    /* ---- SbW 自动驱动帧 (ID 0x201) ----
+                    * Byte[0]: Driving_Config_Enable (0=off, 1=on)
+                    * Byte[1]: Target_Accelerator_pedal_Position (uint8, 1% per LSB)
+                    * Byte[2]: Target_Longitudinal_Acceleration (uint8, 0.1 m/s² per LSB)
+                    * Byte[3]: Target_Driving_Torque (uint8, 1 N·m per LSB)
+                    * Byte[4-7]: 保留
+                    */
+                    case CAN_ID_SBW_AUTO_DRIVE:
+                    {
+                        g_chassis_auto.Drive_Function.Drive_Control.Driving_Config_Enable
+                            = msg->Data[0];
+                        g_chassis_auto.Drive_Function.Drive_Control.Target_Accelerator_pedal_Position
+                            = msg->Data[1];
+                        g_chassis_auto.Drive_Function.Drive_Control.Target_Longitudinal_Acceleration
+                            = msg->Data[2];
+                        g_chassis_auto.Drive_Function.Drive_Control.Target_Driving_Torque
+                            = msg->Data[3];
+                        g_chassis_auto.Last_Command_Tick = HAL_GetTick();
+                        break;
+                    }
+
+                    /* ---- SbW 自动档位帧 (ID 0x202) ----
+                    * Byte[0]: Gear_Config_Enable (0=off, 1=on)
+                    * Byte[1]: Target_Gear_Position (uint8: 0=P, 1=R, 2=N, 3=D)
+                    * Byte[2]: Parking_Config_Enable (0=off, 1=on)
+                    * Byte[3]: Parking_Request (0=释放, 1=夹紧)
+                    * Byte[4-7]: 保留
+                    */
+                    case CAN_ID_SBW_AUTO_GEAR:
+                    {
+                        g_chassis_auto.Gear_Function.Gear_Control.Gear_Config_Enable
+                            = msg->Data[0];
+                        g_chassis_auto.Gear_Function.Gear_Control.Target_Gear_Position
+                            = (Gear_Position)msg->Data[1];
+                        g_chassis_auto.Parking_Function.Parking_Control.Parking_Config_Enable
+                            = msg->Data[2];
+                        g_chassis_auto.Parking_Function.Parking_Control.Parking_Request
+                            = msg->Data[3];
+                        g_chassis_auto.Last_Command_Tick = HAL_GetTick();
+                        break;
+                    }
+
+                    /* ---- SbW 自动制动帧 (ID 0x203) ----
+                    * Byte[0]: Braking_Config_Enable (0=off, 1=on)
+                    * Byte[1]: Target_Deceleration (uint8, 0.1 m/s² per LSB)
+                    * Byte[2]: Break_Light_Control (0=熄灯, 1=亮灯)
+                    * Byte[3-7]: 保留
+                    */
+                    case CAN_ID_SBW_AUTO_BRAKE:
+                    {
+                        g_chassis_auto.Braking_Function.Braking_Control.Braking_Config_Enable
+                            = msg->Data[0];
+                        g_chassis_auto.Braking_Function.Braking_Control.Target_Deceleration
+                            = msg->Data[1];
+                        g_chassis_auto.Braking_Function.Braking_Control.Break_Light_Control
+                            = msg->Data[2];
+                        g_chassis_auto.Last_Command_Tick = HAL_GetTick();
+                        break;
+                    }
+
+                    /* ---- SbW 物理档位帧 (ID 0x210) ----
+                    * Byte[0]: Gear_Position (uint8: 0=P, 1=R, 2=N, 3=D)
+                    * Byte[1-7]: 保留
+                    */
+                    case CAN_ID_SBW_MANUAL_GEAR:
+                    {
+                        g_chassis_manual.Gear_Function.Gear_Control.Gear_Config_Enable = 1;
+                        g_chassis_manual.Gear_Function.Gear_Control.Target_Gear_Position
+                            = (Gear_Position)msg->Data[0];
+                        break;
+                    }
+
+                    /* ---- SbW 物理方向盘帧 (ID 0x211) ----
+                    * Byte[0]: Steering_Angle (int8, 0.5 deg/LSB, 0=center)
+                    * Byte[1]: Steering_Torque (uint8, 0.1 Nm per LSB)
+                    * Byte[2-7]: 保留
+                    */
+                    case CAN_ID_SBW_MANUAL_STEERING:
+                    {
+                        g_chassis_manual.Steering_Function.Steering_Control.Steering_Config_Enable = 1;
+                        g_chassis_manual.Steering_Function.Steering_Control.Target_Steering_Angle
+                            = msg->Data[0];
+                        /* 物理方向盘扭矩暂复用 Steering_Speed 字段传递 */
+                        g_chassis_manual.Steering_Function.Steering_Feedback.Steering_Speed
+                            = msg->Data[1];
+                        break;
+                    }
+
+                    /* ---- SbW 物理油门踏板帧 (ID 0x212) ----
+                    * Byte[0]: Accelerator_Pedal_Position (uint8, 1% per LSB)
+                    * Byte[1-7]: 保留
+                    */
+                    case CAN_ID_SBW_MANUAL_ACCEL:
+                    {
+                        g_chassis_manual.Drive_Function.Drive_Control.Driving_Config_Enable = 1;
+                        g_chassis_manual.Drive_Function.Drive_Control.Target_Accelerator_pedal_Position
+                            = msg->Data[0];
+                        break;
+                    }
+
+                    /* ---- SbW 物理制动踏板帧 (ID 0x213) ----
+                    * Byte[0]: Braking_Pedal_Position (uint8, 0.1% per LSB)
+                    * Byte[1-7]: 保留
+                    */
+                    case CAN_ID_SBW_MANUAL_BRAKE:
+                    {
+                        g_chassis_manual.Braking_Function.Braking_Control.Braking_Config_Enable = 1;
+                        g_chassis_manual.Braking_Function.Braking_Control.Target_Braking_Pedal_Position
+                            = msg->Data[0];
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            } 
             break;
+        }
     }
 }
 
