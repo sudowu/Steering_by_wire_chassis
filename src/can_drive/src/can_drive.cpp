@@ -44,8 +44,10 @@ private:
             for (int i = 0; i < len; i++)
             {
                 RCLCPP_INFO(this->get_logger(),
-                            "Received CAN message: ID=0x%X, DataLen=%d, Data=[%02X %02X %02X %02X %02X %02X %02X %02X]",
+                            "接收: ID=0x%X %s %s DataLen=%d, Data=[%02X %02X %02X %02X %02X %02X %02X %02X]",
                             pCanObj[i].ID,
+                            pCanObj[i].RemoteFlag ? "远程帧" : "数据帧",
+                            pCanObj[i].ExternFlag ? "扩展帧" : "标准帧",
                             pCanObj[i].DataLen,
                             pCanObj[i].Data[0],
                             pCanObj[i].Data[1],
@@ -72,7 +74,7 @@ private:
         }
         else if (len == 0)
         {
-            RCLCPP_WARN(this->get_logger(), "No CAN messages received.");
+            // RCLCPP_WARN(this->get_logger(), "No CAN messages received.");
         }
         else
         {
@@ -105,8 +107,10 @@ private:
         if (result == 1)
         {        
             RCLCPP_INFO(this->get_logger(),
-                    "Received message to send: ID=0x%X, DataLen=%d, Data=[%02X %02X %02X %02X %02X %02X %02X %02X]",
+                    "发送: ID=0x%X %s %s DataLen=%d, Data=[%02X %02X %02X %02X %02X %02X %02X %02X]",
                     msg->id,
+                    msg->is_rtr ? "远程帧" : "数据帧",
+                    msg->is_extended ? "扩展帧" : "标准帧",
                     msg->dlc,
                     msg->data[0],
                     msg->data[1],
