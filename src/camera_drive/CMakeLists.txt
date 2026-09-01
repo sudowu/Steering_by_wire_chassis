@@ -15,14 +15,22 @@ find_package(OpenCV REQUIRED)
 
 add_executable(camera_drive_node src/camera_drive.cpp)
 
-ament_target_dependencies(camera_drive_node
-  rclcpp
-  sensor_msgs
-  std_msgs
-  cv_bridge
-)
+# 原始写法（Lyrical 已移除 ament_target_dependencies 命令，保留注释备查）
+# ament_target_dependencies(camera_drive_node
+#   rclcpp
+#   sensor_msgs
+#   std_msgs
+#   cv_bridge
+# )
 
-target_link_libraries(camera_drive_node ${OpenCV_LIBS})
+# Lyrical 改用带命名空间的 target 进行链接
+target_link_libraries(camera_drive_node
+  rclcpp::rclcpp
+  sensor_msgs::sensor_msgs
+  std_msgs::std_msgs
+  cv_bridge::cv_bridge
+  ${OpenCV_LIBS}
+)
 
 install(TARGETS camera_drive_node
   DESTINATION lib/${PROJECT_NAME})

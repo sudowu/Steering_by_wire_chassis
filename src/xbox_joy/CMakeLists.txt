@@ -16,13 +16,22 @@ find_package(rclcpp_components REQUIRED)
 
 add_executable(xbox_joy_node src/xbox.cpp)
 
-ament_target_dependencies(xbox_joy_node
-  rclcpp
-  sensor_msgs
-  std_msgs
-  geometry_msgs
-  teleop_twist_joy
-  rclcpp_components
+# 原始写法（Lyrical 已移除 ament_target_dependencies 命令，保留注释备查）
+# ament_target_dependencies(xbox_joy_node
+#   rclcpp
+#   sensor_msgs
+#   std_msgs
+#   geometry_msgs
+#   teleop_twist_joy
+#   rclcpp_components
+# )
+
+# 源码实际只用 rclcpp 和 sensor_msgs；其余包仅保留 find_package，无需链接。
+# 注：rclcpp_components 没有导出 ::rclcpp_components 顶层 target（只有 ::component / ::component_manager），
+# 且 xbox.cpp 并未使用它。
+target_link_libraries(xbox_joy_node
+  rclcpp::rclcpp
+  sensor_msgs::sensor_msgs
 )
 
 install(TARGETS xbox_joy_node

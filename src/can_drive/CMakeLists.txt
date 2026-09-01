@@ -29,15 +29,19 @@ target_include_directories(can_drive_node PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include/can_drive
 )
-ament_target_dependencies(can_drive_node
-  rclcpp
-  std_msgs
-  can_msgs
-)
+# 原始写法（Lyrical 已移除 ament_target_dependencies 命令，保留注释备查）
+# ament_target_dependencies(can_drive_node
+#   rclcpp
+#   std_msgs
+#   can_msgs
+# )
 target_link_directories(can_drive_node PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 target_link_libraries(can_drive_node
+  rclcpp::rclcpp
+  std_msgs::std_msgs
+  can_msgs::can_msgs
   controlcan
 )
 
